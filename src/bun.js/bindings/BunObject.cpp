@@ -471,16 +471,50 @@ JSC_DEFINE_HOST_FUNCTION(functionBunNanoseconds, (JSGlobalObject * globalObject,
 // functionBunWelcome
 JSC_DEFINE_HOST_FUNCTION(functionBunWelcome, (JSGlobalObject * globalObject, JSC::CallFrame* callFrame))
 {
-    // auto* global = reinterpret_cast<GlobalObject*>(globalObject);
-    // auto& vm = global->vm();
-    // auto scope = DECLARE_THROW_SCOPE(vm);
+    auto* global = reinterpret_cast<GlobalObject*>(globalObject);
+    auto& vm = global->vm();
+    // get arg windowName
+    auto windowName = callFrame->argument(0);
+    if (!windowName.isUndefinedOrNull() && !windowName.isString()) {
+        auto throwScope = DECLARE_THROW_SCOPE(vm);
+        throwTypeError(globalObject, throwScope, "Expected a string"_s);
+        return JSValue::encode(jsUndefined());
+    }
 
-    // auto welcome = makeString("Welcome to Zig Shell!");
-    // RETURN_IF_EXCEPTION(scope, {});
+    auto windowNameString = "Bun";
+    if (windowName.isString()) {
+        auto windowNameStringObject = windowName.toWTFString(globalObject);
+        auto windowNameCString = windowNameStringObject.utf8();
+        windowNameString = windowNameCString.data();
+    }
+    // get arg windowWidth
+    auto windowWidth = callFrame->argument(1);
+    if (!windowWidth.isUndefinedOrNull() && !windowWidth.isNumber()) {
+        auto throwScope = DECLARE_THROW_SCOPE(vm);
+        throwTypeError(globalObject, throwScope, "Expected a number"_s);
+        return JSValue::encode(jsUndefined());
+    }
 
-    // return JSValue::encode(JSC::jsString(vm, welcome));
+    auto windowWidthNumber = 800;
+    if(windowWidth.isNumber()) {
+        windowWidthNumber = windowWidth.toNumber(globalObject);
+    }
+    // get arg windowHeight
+    auto windowHeight = callFrame->argument(2);
+    if (!windowHeight.isUndefinedOrNull() && !windowHeight.isNumber()) {
+        auto throwScope = DECLARE_THROW_SCOPE(vm);
+        throwTypeError(globalObject, throwScope, "Expected a number"_s);
+        return JSValue::encode(jsUndefined());
+    }
 
-    InitWindow(800, 450, "raylib [core] example - basic window");
+    auto windowHeightNumber = 450;
+    if(windowHeight.isNumber()) {
+        windowHeightNumber = windowHeight.toNumber(globalObject);
+    }
+
+
+    // InitWindow(800, 450, "raylib [core] example - basic window");
+    InitWindow(windowWidthNumber, windowHeightNumber, windowNameString);
 
     while (!WindowShouldClose())
     {
