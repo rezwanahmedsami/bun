@@ -1403,16 +1403,42 @@ fn NewRequestContext(comptime ssl_enabled: bool, comptime debug_mode: bool, comp
             return JSValue.jsUndefined();
         }
 
+        fn renderMissingInvalidResponse(ctx: *RequestContext, value: JSC.JSValue) void {
+            var class_name = value.getClassInfoName() orelse bun.String.empty;
+            defer class_name.deref();
+            const globalThis: *JSC.JSGlobalObject = ctx.server.globalThis;
+
+            Output.enableBuffering();
+            var writer = Output.errorWriter();
+
+            if (class_name.eqlComptime("Response")) {
+                Output.errGeneric("Expected a native Response object, but received a polyfilled Response object. Bun.serve() only supports native Response objects.", .{});
+            } else if (!value.isEmpty() and !globalThis.hasException()) {
+                var formatter = JSC.ConsoleObject.Formatter{
+                    .globalThis = globalThis,
+                    .quote_strings = true,
+                };
+                Output.errGeneric("Expected a Response object, but received '{}'", .{value.toFmt(formatter.globalThis, &formatter)});
+            } else {
+                Output.errGeneric("Expected a Response object", .{});
+            }
+
+            Output.flush();
+            if (!globalThis.hasException()) {
+                JSC.ConsoleObject.writeTrace(@TypeOf(&writer), &writer, globalThis);
+            }
+            Output.flush();
+            ctx.renderMissing();
+        }
+
         fn handleResolve(ctx: *RequestContext, value: JSC.JSValue) void {
             if (value.isEmptyOrUndefinedOrNull() or !value.isCell()) {
-                ctx.renderMissing();
+                ctx.renderMissingInvalidResponse(value);
                 return;
             }
 
             const response = value.as(JSC.WebCore.Response) orelse {
-                Output.prettyErrorln("Expected a Response object", .{});
-                Output.flush();
-                ctx.renderMissing();
+                ctx.renderMissingInvalidResponse(value);
                 return;
             };
             ctx.response_jsvalue = value;
@@ -2558,7 +2584,7 @@ fn NewRequestContext(comptime ssl_enabled: bool, comptime debug_mode: bool, comp
             }
 
             if (response_value.isEmptyOrUndefinedOrNull()) {
-                ctx.renderMissing();
+                ctx.renderMissingInvalidResponse(response_value);
                 return;
             }
 
@@ -2611,11 +2637,11 @@ fn NewRequestContext(comptime ssl_enabled: bool, comptime debug_mode: bool, comp
                         }
 
                         if (fulfilled_value.isEmptyOrUndefinedOrNull()) {
-                            ctx.renderMissing();
+                            ctx.renderMissingInvalidResponse(fulfilled_value);
                             return;
                         }
                         var response = fulfilled_value.as(JSC.WebCore.Response) orelse {
-                            ctx.renderMissing();
+                            ctx.renderMissingInvalidResponse(fulfilled_value);
                             return;
                         };
 
@@ -3639,6 +3665,10 @@ pub const WebSocketServer = struct {
         }
 
         pub fn unprotect(this: Handler) void {
+            if (this.vm.isShuttingDown()) {
+                return;
+            }
+
             this.onOpen.unprotect();
             this.onMessage.unprotect();
             this.onClose.unprotect();
@@ -3905,10 +3935,16 @@ pub const ServerWebSocket = struct {
         const value_to_cache = this.this_value;
 
         var handler = this.handler;
+        const vm = this.handler.vm;
         handler.active_connections +|= 1;
         const globalObject = handler.globalObject;
-
         const onOpenHandler = handler.onOpen;
+        if (vm.isShuttingDown()) {
+            log("onOpen called after script execution", .{});
+            ws.close();
+            return;
+        }
+
         this.this_value = .zero;
         this.flags.opened = false;
         if (value_to_cache != .zero) {
@@ -3919,7 +3955,7 @@ pub const ServerWebSocket = struct {
         if (onOpenHandler.isEmptyOrUndefinedOrNull()) return;
         const this_value = this.getThisValue();
         var args = [_]JSValue{this_value};
-        const vm = this.handler.vm;
+
         const loop = vm.eventLoop();
         loop.enter();
         defer loop.exit();
@@ -3974,6 +4010,12 @@ pub const ServerWebSocket = struct {
         var globalObject = this.handler.globalObject;
         // This is the start of a task.
         const vm = this.handler.vm;
+        if (vm.isShuttingDown()) {
+            log("onMessage called after script execution", .{});
+            ws.close();
+            return;
+        }
+
         const loop = vm.eventLoop();
         loop.enter();
         defer loop.exit();
@@ -4027,7 +4069,8 @@ pub const ServerWebSocket = struct {
         log("onDrain", .{});
 
         const handler = this.handler;
-        if (this.isClosed())
+        const vm = handler.vm;
+        if (this.isClosed() or vm.isShuttingDown())
             return;
 
         if (handler.onDrain != .zero) {
@@ -4038,7 +4081,6 @@ pub const ServerWebSocket = struct {
                 .globalObject = globalObject,
                 .callback = handler.onDrain,
             };
-            const vm = JSC.VirtualMachine.get();
             const loop = vm.eventLoop();
             loop.enter();
             defer loop.exit();
@@ -4075,10 +4117,9 @@ pub const ServerWebSocket = struct {
 
         const handler = this.handler;
         var cb = handler.onPing;
-        if (cb.isEmptyOrUndefinedOrNull()) return;
+        const vm = handler.vm;
+        if (cb.isEmptyOrUndefinedOrNull() or vm.isShuttingDown()) return;
         const globalThis = handler.globalObject;
-
-        const vm = JSC.VirtualMachine.get();
 
         // This is the start of a task.
         const loop = vm.eventLoop();
@@ -4105,6 +4146,8 @@ pub const ServerWebSocket = struct {
 
         const globalThis = handler.globalObject;
         const vm = handler.vm;
+
+        if (vm.isShuttingDown()) return;
 
         // This is the start of a task.
         const loop = vm.eventLoop();
@@ -4133,10 +4176,12 @@ pub const ServerWebSocket = struct {
             }
         }
 
+        const vm = handler.vm;
+        if (vm.isShuttingDown()) return;
+
         if (!handler.onClose.isEmptyOrUndefinedOrNull()) {
             var str = ZigString.init(message);
             const globalObject = handler.globalObject;
-            const vm = handler.vm;
             const loop = vm.eventLoop();
             loop.enter();
             defer loop.exit();
