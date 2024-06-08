@@ -51,14 +51,6 @@
     macro(udpSocket) \
     macro(mmap) \
     macro(nanoseconds) \
-    macro(welcome) \
-    macro(InitWindow) \
-    macro(WindowShouldClose) \
-    macro(ClearBackground) \
-    macro(BeginDrawing) \
-    macro(EndDrawing) \
-    macro(DrawCircle) \
-    macro(CloseWindow) \
     macro(openInEditor) \
     macro(registerMacro) \
     macro(resolve) \

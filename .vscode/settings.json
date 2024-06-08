@@ -131,7 +131,14 @@
     "*.idl": "cpp",
     "__locale": "cpp",
     "*.inc": "cpp",
-    "istream": "cpp"
+    "istream": "cpp",
+    "__bit_reference": "cpp",
+    "bitset": "cpp",
+    "map": "cpp",
+    "set": "cpp",
+    "unordered_map": "cpp",
+    "unordered_set": "cpp",
+    "*.m": "cpp"
   },
   "C_Cpp.files.exclude": {
     "**/.vscode": true,

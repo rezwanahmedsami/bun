@@ -469,12 +469,130 @@ JSC_DEFINE_HOST_FUNCTION(functionBunNanoseconds, (JSGlobalObject * globalObject,
 }
 
 // GUI functions defined here
+// // Function to initialize a window
+// JSC_DEFINE_HOST_FUNCTION(functionInitWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+//     auto windowWidth = callFrame->argument(0).toInt32(globalObject);
+//     auto windowHeight = callFrame->argument(1).toInt32(globalObject);
+//     auto windowTitle = callFrame->argument(2).toWTFString(globalObject).utf8().data();
+//     InitWindow(windowWidth, windowHeight, windowTitle);
+//     return JSValue::encode(jsUndefined());
+// }
+
+// // Function to check if the window should close
+// JSC_DEFINE_HOST_FUNCTION(functionWindowShouldClose, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+//     return JSValue::encode(jsBoolean(WindowShouldClose()));
+// }
+
+// // Function to clear the background
+// JSC_DEFINE_HOST_FUNCTION(functionClearBackground, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+//     auto colorInt = callFrame->argument(0).toInt32(globalObject);
+//     Color color = {
+//         (unsigned char)(colorInt >> 24),
+//         (unsigned char)((colorInt >> 16) & 0xFF),
+//         (unsigned char)((colorInt >> 8) & 0xFF),
+//         (unsigned char)(colorInt & 0xFF)
+//     };
+//     ClearBackground(color);
+//     return JSValue::encode(jsUndefined());
+// }
+
+// // Function to begin drawing
+// JSC_DEFINE_HOST_FUNCTION(functionBeginDrawing, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+//     BeginDrawing();
+//     return JSValue::encode(jsUndefined());
+// }
+
+// // Function to end drawing
+// JSC_DEFINE_HOST_FUNCTION(functionEndDrawing, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+//     EndDrawing();
+//     return JSValue::encode(jsUndefined());
+// }
+
+// // Function to draw a circle
+// JSC_DEFINE_HOST_FUNCTION(functionDrawCircle, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+//     auto centerX = callFrame->argument(0).toInt32(globalObject);
+//     auto centerY = callFrame->argument(1).toInt32(globalObject);
+//     auto radius = callFrame->argument(2).toFloat(globalObject);
+//     auto colorInt = callFrame->argument(3).toInt32(globalObject);
+//     Color color = {
+//         (unsigned char)(colorInt >> 24),
+//         (unsigned char)((colorInt >> 16) & 0xFF),
+//         (unsigned char)((colorInt >> 8) & 0xFF),
+//         (unsigned char)(colorInt & 0xFF)
+//     };
+//     DrawCircle(centerX, centerY, radius, color);
+//     return JSValue::encode(jsUndefined());
+// }
+
+// // Close window
+// JSC_DEFINE_HOST_FUNCTION(functionCloseWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+//     CloseWindow();
+//     return JSValue::encode(jsUndefined());
+// }
+
+/* 
+// Window-related functions
+    void InitWindow(int width, int height, const char *title);  // Initialize window and OpenGL context
+    void CloseWindow(void);                                     // Close window and unload OpenGL context
+    bool WindowShouldClose(void);                               // Check if application should close (KEY_ESCAPE pressed or windows close icon clicked)
+    bool IsWindowReady(void);                                   // Check if window has been initialized successfully
+    bool IsWindowFullscreen(void);                              // Check if window is currently fullscreen
+    bool IsWindowHidden(void);                                  // Check if window is currently hidden (only PLATFORM_DESKTOP)
+    bool IsWindowMinimized(void);                               // Check if window is currently minimized (only PLATFORM_DESKTOP)
+    bool IsWindowMaximized(void);                               // Check if window is currently maximized (only PLATFORM_DESKTOP)
+    bool IsWindowFocused(void);                                 // Check if window is currently focused (only PLATFORM_DESKTOP)
+    bool IsWindowResized(void);                                 // Check if window has been resized last frame
+    bool IsWindowState(unsigned int flag);                      // Check if one specific window flag is enabled
+    void SetWindowState(unsigned int flags);                    // Set window configuration state using flags (only PLATFORM_DESKTOP)
+    void ClearWindowState(unsigned int flags);                  // Clear window configuration state flags
+    void ToggleFullscreen(void);                                // Toggle window state: fullscreen/windowed (only PLATFORM_DESKTOP)
+    void ToggleBorderlessWindowed(void);                        // Toggle window state: borderless windowed (only PLATFORM_DESKTOP)
+    void MaximizeWindow(void);                                  // Set window state: maximized, if resizable (only PLATFORM_DESKTOP)
+    void MinimizeWindow(void);                                  // Set window state: minimized, if resizable (only PLATFORM_DESKTOP)
+    void RestoreWindow(void);                                   // Set window state: not minimized/maximized (only PLATFORM_DESKTOP)
+    void SetWindowIcon(Image image);                            // Set icon for window (single image, RGBA 32bit, only PLATFORM_DESKTOP)
+    void SetWindowIcons(Image *images, int count);              // Set icon for window (multiple images, RGBA 32bit, only PLATFORM_DESKTOP)
+    void SetWindowTitle(const char *title);                     // Set title for window (only PLATFORM_DESKTOP and PLATFORM_WEB)
+    void SetWindowPosition(int x, int y);                       // Set window position on screen (only PLATFORM_DESKTOP)
+    void SetWindowMonitor(int monitor);                         // Set monitor for the current window
+    void SetWindowMinSize(int width, int height);               // Set window minimum dimensions (for FLAG_WINDOW_RESIZABLE)
+    void SetWindowMaxSize(int width, int height);               // Set window maximum dimensions (for FLAG_WINDOW_RESIZABLE)
+    void SetWindowSize(int width, int height);                  // Set window dimensions
+    void SetWindowOpacity(float opacity);                       // Set window opacity [0.0f..1.0f] (only PLATFORM_DESKTOP)
+    void SetWindowFocused(void);                                // Set window focused (only PLATFORM_DESKTOP)
+    void *GetWindowHandle(void);                                // Get native window handle
+    int GetScreenWidth(void);                                   // Get current screen width
+    int GetScreenHeight(void);                                  // Get current screen height
+    int GetRenderWidth(void);                                   // Get current render width (it considers HiDPI)
+    int GetRenderHeight(void);                                  // Get current render height (it considers HiDPI)
+    int GetMonitorCount(void);                                  // Get number of connected monitors
+    int GetCurrentMonitor(void);                                // Get current connected monitor
+    Vector2 GetMonitorPosition(int monitor);                    // Get specified monitor position
+    int GetMonitorWidth(int monitor);                           // Get specified monitor width (current video mode used by monitor)
+    int GetMonitorHeight(int monitor);                          // Get specified monitor height (current video mode used by monitor)
+    int GetMonitorPhysicalWidth(int monitor);                   // Get specified monitor physical width in millimetres
+    int GetMonitorPhysicalHeight(int monitor);                  // Get specified monitor physical height in millimetres
+    int GetMonitorRefreshRate(int monitor);                     // Get specified monitor refresh rate
+    Vector2 GetWindowPosition(void);                            // Get window position XY on monitor
+    Vector2 GetWindowScaleDPI(void);                            // Get window scale DPI factor
+    const char *GetMonitorName(int monitor);                    // Get the human-readable, UTF-8 encoded name of the specified monitor
+    void SetClipboardText(const char *text);                    // Set clipboard text content
+    const char *GetClipboardText(void);                         // Get clipboard text content
+    void EnableEventWaiting(void);                              // Enable waiting for events on EndDrawing(), no automatic event polling
+    void DisableEventWaiting(void);                             // Disable waiting for events on EndDrawing(), automatic events polling
+ */
 // Function to initialize a window
 JSC_DEFINE_HOST_FUNCTION(functionInitWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
-    auto windowWidth = callFrame->argument(0).toInt32(globalObject);
-    auto windowHeight = callFrame->argument(1).toInt32(globalObject);
-    auto windowTitle = callFrame->argument(2).toWTFString(globalObject).utf8().data();
-    InitWindow(windowWidth, windowHeight, windowTitle);
+    auto width = callFrame->argument(0).toInt32(globalObject);
+    auto height = callFrame->argument(1).toInt32(globalObject);
+    auto title = callFrame->argument(2).toWTFString(globalObject).utf8().data();
+    InitWindow(width, height, title);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to close the window
+JSC_DEFINE_HOST_FUNCTION(functionCloseWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    CloseWindow();
     return JSValue::encode(jsUndefined());
 }
 
@@ -483,52 +601,301 @@ JSC_DEFINE_HOST_FUNCTION(functionWindowShouldClose, (JSGlobalObject *globalObjec
     return JSValue::encode(jsBoolean(WindowShouldClose()));
 }
 
-// Function to clear the background
-JSC_DEFINE_HOST_FUNCTION(functionClearBackground, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
-    auto colorInt = callFrame->argument(0).toInt32(globalObject);
-    Color color = {
-        (unsigned char)(colorInt >> 24),
-        (unsigned char)((colorInt >> 16) & 0xFF),
-        (unsigned char)((colorInt >> 8) & 0xFF),
-        (unsigned char)(colorInt & 0xFF)
-    };
-    ClearBackground(color);
+// Function to check if the window is ready
+JSC_DEFINE_HOST_FUNCTION(functionIsWindowReady, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsBoolean(IsWindowReady()));
+}
+
+// Function to check if the window is currently fullscreen
+JSC_DEFINE_HOST_FUNCTION(functionIsWindowFullscreen, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsBoolean(IsWindowFullscreen()));
+}
+
+// Function to check if the window is currently hidden
+JSC_DEFINE_HOST_FUNCTION(functionIsWindowHidden, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsBoolean(IsWindowHidden()));
+}
+
+// Function to check if the window is currently minimized
+JSC_DEFINE_HOST_FUNCTION(functionIsWindowMinimized, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsBoolean(IsWindowMinimized()));
+}
+
+// Function to check if the window is currently maximized
+JSC_DEFINE_HOST_FUNCTION(functionIsWindowMaximized, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsBoolean(IsWindowMaximized()));
+}
+
+// Function to check if the window is currently focused
+JSC_DEFINE_HOST_FUNCTION(functionIsWindowFocused, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsBoolean(IsWindowFocused()));
+}
+
+// Function to check if the window has been resized last frame
+JSC_DEFINE_HOST_FUNCTION(functionIsWindowResized, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsBoolean(IsWindowResized()));
+}
+
+// Function to check if one specific window flag is enabled
+JSC_DEFINE_HOST_FUNCTION(functionIsWindowState, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto flag = callFrame->argument(0).toInt32(globalObject);
+    return JSValue::encode(jsBoolean(IsWindowState(flag)));
+}
+
+// Function to set the window state
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowState, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto flags = callFrame->argument(0).toInt32(globalObject);
+    SetWindowState(flags);
     return JSValue::encode(jsUndefined());
 }
 
-// Function to begin drawing
-JSC_DEFINE_HOST_FUNCTION(functionBeginDrawing, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
-    BeginDrawing();
+// Function to clear the window state
+JSC_DEFINE_HOST_FUNCTION(functionClearWindowState, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto flags = callFrame->argument(0).toInt32(globalObject);
+    ClearWindowState(flags);
     return JSValue::encode(jsUndefined());
 }
 
-// Function to end drawing
-JSC_DEFINE_HOST_FUNCTION(functionEndDrawing, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
-    EndDrawing();
+// Function to toggle fullscreen
+JSC_DEFINE_HOST_FUNCTION(functionToggleFullscreen, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    ToggleFullscreen();
     return JSValue::encode(jsUndefined());
 }
 
-// Function to draw a circle
-JSC_DEFINE_HOST_FUNCTION(functionDrawCircle, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
-    auto centerX = callFrame->argument(0).toInt32(globalObject);
-    auto centerY = callFrame->argument(1).toInt32(globalObject);
-    auto radius = callFrame->argument(2).toFloat(globalObject);
-    auto colorInt = callFrame->argument(3).toInt32(globalObject);
-    Color color = {
-        (unsigned char)(colorInt >> 24),
-        (unsigned char)((colorInt >> 16) & 0xFF),
-        (unsigned char)((colorInt >> 8) & 0xFF),
-        (unsigned char)(colorInt & 0xFF)
-    };
-    DrawCircle(centerX, centerY, radius, color);
+// Function to toggle borderless windowed
+JSC_DEFINE_HOST_FUNCTION(functionToggleBorderlessWindowed, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    ToggleBorderlessWindowed();
     return JSValue::encode(jsUndefined());
 }
 
-// Close window
-JSC_DEFINE_HOST_FUNCTION(functionCloseWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
-    CloseWindow();
+// Function to maximize the window
+
+JSC_DEFINE_HOST_FUNCTION(functionMaximizeWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    MaximizeWindow();
     return JSValue::encode(jsUndefined());
 }
+
+// Function to minimize the window
+JSC_DEFINE_HOST_FUNCTION(functionMinimizeWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    MinimizeWindow();
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to restore the window
+
+JSC_DEFINE_HOST_FUNCTION(functionRestoreWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    RestoreWindow();
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window icon
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowIcon, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // auto image = callFrame->argument(0).toObject(globalObject);
+    // SetWindowIcon(image);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window icons
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowIcons, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // auto images = callFrame->argument(0).toObject(globalObject);
+    // auto count = callFrame->argument(1).toInt32(globalObject);
+    // SetWindowIcons(images, count);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window title
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowTitle, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto title = callFrame->argument(0).toWTFString(globalObject).utf8().data();
+    SetWindowTitle(title);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window position
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowPosition, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto x = callFrame->argument(0).toInt32(globalObject);
+    auto y = callFrame->argument(1).toInt32(globalObject);
+    SetWindowPosition(x, y);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window monitor
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowMonitor, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto monitor = callFrame->argument(0).toInt32(globalObject);
+    SetWindowMonitor(monitor);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window min size
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowMinSize, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto width = callFrame->argument(0).toInt32(globalObject);
+    auto height = callFrame->argument(1).toInt32(globalObject);
+    SetWindowMinSize(width, height);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window max size
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowMaxSize, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto width = callFrame->argument(0).toInt32(globalObject);
+    auto height = callFrame->argument(1).toInt32(globalObject);
+    SetWindowMaxSize(width, height);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window size
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowSize, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto width = callFrame->argument(0).toInt32(globalObject);
+    auto height = callFrame->argument(1).toInt32(globalObject);
+    SetWindowSize(width, height);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window opacity
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowOpacity, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto opacity = callFrame->argument(0).toFloat(globalObject);
+    SetWindowOpacity(opacity);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set the window focused
+JSC_DEFINE_HOST_FUNCTION(functionSetWindowFocused, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    SetWindowFocused();
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to get the window handle
+JSC_DEFINE_HOST_FUNCTION(functionGetWindowHandle, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // return JSValue::encode(jsNumberFromPointer(GetWindowHandle()));
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to get the screen width
+JSC_DEFINE_HOST_FUNCTION(functionGetScreenWidth, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsNumber(GetScreenWidth()));
+}
+
+// Function to get the screen height
+JSC_DEFINE_HOST_FUNCTION(functionGetScreenHeight, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsNumber(GetScreenHeight()));
+}
+
+// Function to get the render width
+JSC_DEFINE_HOST_FUNCTION(functionGetRenderWidth, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsNumber(GetRenderWidth()));
+}
+
+// Function to get the render height
+JSC_DEFINE_HOST_FUNCTION(functionGetRenderHeight, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsNumber(GetRenderHeight()));
+}
+
+// Function to get the monitor count
+JSC_DEFINE_HOST_FUNCTION(functionGetMonitorCount, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsNumber(GetMonitorCount()));
+}
+
+// Function to get the current monitor
+JSC_DEFINE_HOST_FUNCTION(functionGetCurrentMonitor, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsNumber(GetCurrentMonitor()));
+}
+
+// Function to get the monitor position
+JSC_DEFINE_HOST_FUNCTION(functionGetMonitorPosition, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto monitor = callFrame->argument(0).toInt32(globalObject);
+    auto position = GetMonitorPosition(monitor);
+    return JSValue::encode(JSC::JSObject {
+        {"x", jsNumber(position.x)},
+        {"y", jsNumber(position.y)}
+    });
+    // return JSValue::encode(jsUndefined());
+}
+
+// Function to get the monitor width
+JSC_DEFINE_HOST_FUNCTION(functionGetMonitorWidth, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto monitor = callFrame->argument(0).toInt32(globalObject);
+    return JSValue::encode(jsNumber(GetMonitorWidth(monitor)));
+}
+
+// Function to get the monitor height
+JSC_DEFINE_HOST_FUNCTION(functionGetMonitorHeight, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto monitor = callFrame->argument(0).toInt32(globalObject);
+    return JSValue::encode(jsNumber(GetMonitorHeight(monitor)));
+}
+
+// Function to get the monitor physical width
+JSC_DEFINE_HOST_FUNCTION(functionGetMonitorPhysicalWidth, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto monitor = callFrame->argument(0).toInt32(globalObject);
+    return JSValue::encode(jsNumber(GetMonitorPhysicalWidth(monitor)));
+}
+
+// Function to get the monitor physical height
+JSC_DEFINE_HOST_FUNCTION(functionGetMonitorPhysicalHeight, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto monitor = callFrame->argument(0).toInt32(globalObject);
+    return JSValue::encode(jsNumber(GetMonitorPhysicalHeight(monitor)));
+}
+
+// Function to get the monitor refresh rate
+JSC_DEFINE_HOST_FUNCTION(functionGetMonitorRefreshRate, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto monitor = callFrame->argument(0).toInt32(globalObject);
+    return JSValue::encode(jsNumber(GetMonitorRefreshRate(monitor)));
+}
+
+// Function to get the window position
+JSC_DEFINE_HOST_FUNCTION(functionGetWindowPosition, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // auto position = GetWindowPosition();
+    // return JSValue::encode(jsObjectCreate(globalObject, {
+    //     {"x", jsNumber(position.x)},
+    //     {"y", jsNumber(position.y)}
+    // }));
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to get the window scale DPI
+JSC_DEFINE_HOST_FUNCTION(functionGetWindowScaleDPI, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // auto scaleDPI = GetWindowScaleDPI();
+    // return JSValue::encode(JSC::jsObject(globalObject, {
+    //     {"x", jsNumber(scaleDPI.x)},
+    //     {"y", jsNumber(scaleDPI.y)}
+    // }));
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to get the monitor name
+JSC_DEFINE_HOST_FUNCTION(functionGetMonitorName, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto* global = reinterpret_cast<GlobalObject*>(globalObject);
+    JSC::VM& vm = global->vm();
+    auto monitor = callFrame->argument(0).toInt32(globalObject);
+    return JSValue::encode(JSC::jsString(vm, makeString(GetMonitorName(monitor))));
+}
+
+// Function to set the clipboard text
+JSC_DEFINE_HOST_FUNCTION(functionSetClipboardText, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto text = callFrame->argument(0).toWTFString(globalObject).utf8().data();
+    SetClipboardText(text);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to get the clipboard text
+JSC_DEFINE_HOST_FUNCTION(functionGetClipboardText, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto* global = reinterpret_cast<GlobalObject*>(globalObject);
+    JSC::VM& vm = global->vm();
+    return JSValue::encode(JSC::jsString(vm, makeString(GetClipboardText())));
+}
+
+// Function to enable event waiting
+JSC_DEFINE_HOST_FUNCTION(functionEnableEventWaiting, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    EnableEventWaiting();
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to disable event waiting
+JSC_DEFINE_HOST_FUNCTION(functionDisableEventWaiting, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    DisableEventWaiting();
+    return JSValue::encode(jsUndefined());
+}
+
+
+
+/* Window-related functions */
 
 // GUI functions END
 
@@ -637,13 +1004,56 @@ JSC_DEFINE_HOST_FUNCTION(functionFileURLToPath, (JSC::JSGlobalObject * globalObj
     main                                           BunObject_getter_wrap_main                                          DontDelete|PropertyCallback
     mmap                                           BunObject_callback_mmap                                             DontDelete|Function 1
     nanoseconds                                    functionBunNanoseconds                                              DontDelete|Function 0
-    InitWindow                                     functionInitWindow                                                  DontDelete|Function 3
-    WindowShouldClose                              functionWindowShouldClose                                           DontDelete|Function 0
-    ClearBackground                                functionClearBackground                                             DontDelete|Function 1
-    BeginDrawing                                   functionBeginDrawing                                                DontDelete|Function 0
-    EndDrawing                                     functionEndDrawing                                                  DontDelete|Function 0
-    DrawCircle                                     functionDrawCircle                                             DontDelete|Function 4
-    CloseWindow                                    functionCloseWindow                                                 DontDelete|Function 0
+  
+    initWindow                                     functionInitWindow                                                  DontDelete|Function 3
+    closeWindow                                    functionCloseWindow                                                 DontDelete|Function 0
+    windowShouldClose                              functionWindowShouldClose                                           DontDelete|Function 0
+    isWindowReady                                  functionIsWindowReady                                               DontDelete|Function 0
+    isWindowFullscreen                             functionIsWindowFullscreen                                          DontDelete|Function 0
+    isWindowHidden                                 functionIsWindowHidden                                              DontDelete|Function 0
+    isWindowMinimized                              functionIsWindowMinimized                                           DontDelete|Function 0
+    isWindowMaximized                              functionIsWindowMaximized                                           DontDelete|Function 0
+    isWindowFocused                                functionIsWindowFocused                                             DontDelete|Function 0
+    isWindowResized                                functionIsWindowResized                                             DontDelete|Function 0
+    isWindowState                                  functionIsWindowState                                               DontDelete|Function 1
+    setWindowState                                 functionSetWindowState                                              DontDelete|Function 1
+    clearWindowState                               functionClearWindowState                                            DontDelete|Function 1
+    toggleFullscreen                               functionToggleFullscreen                                            DontDelete|Function 0
+    toggleBorderlessWindowed                       functionToggleBorderlessWindowed                                    DontDelete|Function 0
+    maximizeWindow                                 functionMaximizeWindow                                              DontDelete|Function 0
+    minimizeWindow                                 functionMinimizeWindow                                              DontDelete|Function 0
+    restoreWindow                                  functionRestoreWindow                                               DontDelete|Function 0
+    setWindowIcon                                  functionSetWindowIcon                                               DontDelete|Function 1
+    setWindowIcons                                 functionSetWindowIcons                                              DontDelete|Function 2
+    setWindowTitle                                 functionSetWindowTitle                                              DontDelete|Function 1
+    setWindowPosition                              functionSetWindowPosition                                           DontDelete|Function 2
+    setWindowMonitor                               functionSetWindowMonitor                                            DontDelete|Function 1
+    setWindowMinSize                               functionSetWindowMinSize                                            DontDelete|Function 2
+    setWindowMaxSize                               functionSetWindowMaxSize                                            DontDelete|Function 2
+    setWindowSize                                  functionSetWindowSize                                               DontDelete|Function 2
+    setWindowOpacity                               functionSetWindowOpacity                                            DontDelete|Function 1
+    setWindowFocused                               functionSetWindowFocused                                            DontDelete|Function 0
+    getWindowHandle                                functionGetWindowHandle                                             DontDelete|Function 0
+    getScreenWidth                                 functionGetScreenWidth                                              DontDelete|Function 0
+    getScreenHeight                                functionGetScreenHeight                                             DontDelete|Function 0
+    getRenderWidth                                 functionGetRenderWidth                                              DontDelete|Function 0
+    getRenderHeight                                functionGetRenderHeight                                             DontDelete|Function 0
+    getMonitorCount                                functionGetMonitorCount                                             DontDelete|Function 0
+    getCurrentMonitor                              functionGetCurrentMonitor                                           DontDelete|Function 0
+    getMonitorPosition                             functionGetMonitorPosition                                          DontDelete|Function 1
+    getMonitorWidth                                functionGetMonitorWidth                                             DontDelete|Function 1
+    getMonitorHeight                               functionGetMonitorHeight                                            DontDelete|Function 1
+    getMonitorPhysicalWidth                        functionGetMonitorPhysicalWidth                                     DontDelete|Function 1
+    getMonitorPhysicalHeight                       functionGetMonitorPhysicalHeight                                    DontDelete|Function 1
+    getMonitorRefreshRate                          functionGetMonitorRefreshRate                                       DontDelete|Function 1
+    getWindowPosition                              functionGetWindowPosition                                           DontDelete|Function 0
+    getWindowScaleDPI                              functionGetWindowScaleDPI                                           DontDelete|Function 0
+    getMonitorName                                 functionGetMonitorName                                              DontDelete|Function 1
+    setClipboardText                               functionSetClipboardText                                            DontDelete|Function 1
+    getClipboardText                               functionGetClipboardText                                            DontDelete|Function 0
+    enableEventWaiting                             functionEnableEventWaiting                                          DontDelete|Function 0
+    disableEventWaiting                            functionDisableEventWaiting                                         DontDelete|Function 0
+    
     openInEditor                                   BunObject_callback_openInEditor                                     DontDelete|Function 1
     origin                                         BunObject_getter_wrap_origin                                        DontDelete|PropertyCallback
     password                                       constructPasswordObject                                             DontDelete|PropertyCallback
