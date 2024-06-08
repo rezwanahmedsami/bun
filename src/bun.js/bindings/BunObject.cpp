@@ -468,66 +468,69 @@ JSC_DEFINE_HOST_FUNCTION(functionBunNanoseconds, (JSGlobalObject * globalObject,
     return JSValue::encode(jsNumber(time));
 }
 
-// functionBunWelcome
-JSC_DEFINE_HOST_FUNCTION(functionBunWelcome, (JSGlobalObject * globalObject, JSC::CallFrame* callFrame))
-{
-    auto* global = reinterpret_cast<GlobalObject*>(globalObject);
-    auto& vm = global->vm();
-    // get arg windowName
-    auto windowName = callFrame->argument(0);
-    if (!windowName.isUndefinedOrNull() && !windowName.isString()) {
-        auto throwScope = DECLARE_THROW_SCOPE(vm);
-        throwTypeError(globalObject, throwScope, "Expected a string"_s);
-        return JSValue::encode(jsUndefined());
-    }
-
-    auto windowNameString = "Bun";
-    if (windowName.isString()) {
-        auto windowNameStringObject = windowName.toWTFString(globalObject);
-        auto windowNameCString = windowNameStringObject.utf8();
-        windowNameString = windowNameCString.data();
-    }
-    // get arg windowWidth
-    auto windowWidth = callFrame->argument(1);
-    if (!windowWidth.isUndefinedOrNull() && !windowWidth.isNumber()) {
-        auto throwScope = DECLARE_THROW_SCOPE(vm);
-        throwTypeError(globalObject, throwScope, "Expected a number"_s);
-        return JSValue::encode(jsUndefined());
-    }
-
-    auto windowWidthNumber = 800;
-    if(windowWidth.isNumber()) {
-        windowWidthNumber = windowWidth.toNumber(globalObject);
-    }
-    // get arg windowHeight
-    auto windowHeight = callFrame->argument(2);
-    if (!windowHeight.isUndefinedOrNull() && !windowHeight.isNumber()) {
-        auto throwScope = DECLARE_THROW_SCOPE(vm);
-        throwTypeError(globalObject, throwScope, "Expected a number"_s);
-        return JSValue::encode(jsUndefined());
-    }
-
-    auto windowHeightNumber = 450;
-    if(windowHeight.isNumber()) {
-        windowHeightNumber = windowHeight.toNumber(globalObject);
-    }
-
-
-    // InitWindow(800, 450, "raylib [core] example - basic window");
-    InitWindow(windowWidthNumber, windowHeightNumber, windowNameString);
-
-    while (!WindowShouldClose())
-    {
-        BeginDrawing();
-            ClearBackground(RAYWHITE);
-            DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
-        EndDrawing();
-    }
-
-    CloseWindow();
-
+// GUI functions defined here
+// Function to initialize a window
+JSC_DEFINE_HOST_FUNCTION(functionInitWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto windowWidth = callFrame->argument(0).toInt32(globalObject);
+    auto windowHeight = callFrame->argument(1).toInt32(globalObject);
+    auto windowTitle = callFrame->argument(2).toWTFString(globalObject).utf8().data();
+    InitWindow(windowWidth, windowHeight, windowTitle);
     return JSValue::encode(jsUndefined());
 }
+
+// Function to check if the window should close
+JSC_DEFINE_HOST_FUNCTION(functionWindowShouldClose, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    return JSValue::encode(jsBoolean(WindowShouldClose()));
+}
+
+// Function to clear the background
+JSC_DEFINE_HOST_FUNCTION(functionClearBackground, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto colorInt = callFrame->argument(0).toInt32(globalObject);
+    Color color = {
+        (unsigned char)(colorInt >> 24),
+        (unsigned char)((colorInt >> 16) & 0xFF),
+        (unsigned char)((colorInt >> 8) & 0xFF),
+        (unsigned char)(colorInt & 0xFF)
+    };
+    ClearBackground(color);
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to begin drawing
+JSC_DEFINE_HOST_FUNCTION(functionBeginDrawing, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    BeginDrawing();
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to end drawing
+JSC_DEFINE_HOST_FUNCTION(functionEndDrawing, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    EndDrawing();
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to draw a circle
+JSC_DEFINE_HOST_FUNCTION(functionDrawCircle, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    auto centerX = callFrame->argument(0).toInt32(globalObject);
+    auto centerY = callFrame->argument(1).toInt32(globalObject);
+    auto radius = callFrame->argument(2).toFloat(globalObject);
+    auto colorInt = callFrame->argument(3).toInt32(globalObject);
+    Color color = {
+        (unsigned char)(colorInt >> 24),
+        (unsigned char)((colorInt >> 16) & 0xFF),
+        (unsigned char)((colorInt >> 8) & 0xFF),
+        (unsigned char)(colorInt & 0xFF)
+    };
+    DrawCircle(centerX, centerY, radius, color);
+    return JSValue::encode(jsUndefined());
+}
+
+// Close window
+JSC_DEFINE_HOST_FUNCTION(functionCloseWindow, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    CloseWindow();
+    return JSValue::encode(jsUndefined());
+}
+
+// GUI functions END
 
 JSC_DEFINE_HOST_FUNCTION(functionPathToFileURL, (JSC::JSGlobalObject * lexicalGlobalObject, JSC::CallFrame* callFrame))
 {
@@ -634,7 +637,13 @@ JSC_DEFINE_HOST_FUNCTION(functionFileURLToPath, (JSC::JSGlobalObject * globalObj
     main                                           BunObject_getter_wrap_main                                          DontDelete|PropertyCallback
     mmap                                           BunObject_callback_mmap                                             DontDelete|Function 1
     nanoseconds                                    functionBunNanoseconds                                              DontDelete|Function 0
-    welcome                                        functionBunWelcome                                                  DontDelete|Function 0
+    InitWindow                                     functionInitWindow                                                  DontDelete|Function 3
+    WindowShouldClose                              functionWindowShouldClose                                           DontDelete|Function 0
+    ClearBackground                                functionClearBackground                                             DontDelete|Function 1
+    BeginDrawing                                   functionBeginDrawing                                                DontDelete|Function 0
+    EndDrawing                                     functionEndDrawing                                                  DontDelete|Function 0
+    DrawCircle                                     functionDrawCircle                                             DontDelete|Function 4
+    CloseWindow                                    functionCloseWindow                                                 DontDelete|Function 0
     openInEditor                                   BunObject_callback_openInEditor                                     DontDelete|Function 1
     origin                                         BunObject_getter_wrap_origin                                        DontDelete|PropertyCallback
     password                                       constructPasswordObject                                             DontDelete|PropertyCallback
