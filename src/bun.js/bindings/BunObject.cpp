@@ -1222,8 +1222,238 @@ JSC_DEFINE_HOST_FUNCTION(functionEndVrStereoMode, (JSGlobalObject *globalObject,
     EndVrStereoMode();
     return JSValue::encode(jsUndefined());
 }
-
 /* Drawing-related functions */
+
+/*
+ // VR stereo config functions for VR simulator
+    VrStereoConfig LoadVrStereoConfig(VrDeviceInfo device);     // Load VR stereo config for VR simulator device parameters
+    void UnloadVrStereoConfig(VrStereoConfig config);           // Unload VR stereo config
+*/
+
+// Function to load VR stereo config
+// Function to load VR stereo config
+JSC_DEFINE_HOST_FUNCTION(functionLoadVrStereoConfig, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the VR device info data from the argument
+    JSC::JSObject* deviceObject = callFrame->argument(0).toObject(globalObject);
+
+    VrDeviceInfo device = {
+        deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "hResolution"_s)).toInt32(globalObject),
+        deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "vResolution"_s)).toInt32(globalObject),
+        static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "hScreenSize"_s)).toNumber(globalObject)),
+        static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "vScreenSize"_s)).toNumber(globalObject)),
+        static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "eyeToScreenDistance"_s)).toNumber(globalObject)),
+        static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "lensSeparationDistance"_s)).toNumber(globalObject)),
+        static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "interpupillaryDistance"_s)).toNumber(globalObject)),
+        {
+            static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "lensDistortionValues[0]"_s)).toNumber(globalObject)),
+            static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "lensDistortionValues[1]"_s)).toNumber(globalObject)),
+            static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "lensDistortionValues[2]"_s)).toNumber(globalObject)),
+            static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "lensDistortionValues[3]"_s)).toNumber(globalObject))
+        },
+        {
+            static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "chromaAbCorrection[0]"_s)).toNumber(globalObject)),
+            static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "chromaAbCorrection[1]"_s)).toNumber(globalObject)),
+            static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "chromaAbCorrection[2]"_s)).toNumber(globalObject)),
+            static_cast<float>(deviceObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "chromaAbCorrection[3]"_s)).toNumber(globalObject))
+        }
+    };
+
+    // Load VR stereo config for VR device parameters
+    VrStereoConfig* config = new VrStereoConfig(LoadVrStereoConfig(device));
+
+    // Return the VR stereo config as a JSValue (encoded as an integer pointer)
+    return JSValue::encode(JSC::jsNumber(reinterpret_cast<uintptr_t>(config)));
+}
+
+
+
+
+
+// Function to unload VR stereo config
+JSC_DEFINE_HOST_FUNCTION(functionUnloadVrStereoConfig, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the VR stereo config data from the argument
+    uintptr_t configPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+    VrStereoConfig* config = reinterpret_cast<VrStereoConfig*>(configPtr);
+
+    // Unload VR stereo config
+    UnloadVrStereoConfig(*config);
+
+    // Delete the allocated memory
+    delete config;
+
+    return JSValue::encode(jsUndefined());
+}
+/* VR stereo config functions */
+
+/*
+ // Shader management functions
+    // NOTE: Shader functionality is not available on OpenGL 1.1
+    Shader LoadShader(const char *vsFileName, const char *fsFileName);   // Load shader from files and bind default locations
+    Shader LoadShaderFromMemory(const char *vsCode, const char *fsCode); // Load shader from code strings and bind default locations
+    bool IsShaderReady(Shader shader);                                   // Check if a shader is ready
+    int GetShaderLocation(Shader shader, const char *uniformName);       // Get shader uniform location
+    int GetShaderLocationAttrib(Shader shader, const char *attribName);  // Get shader attribute location
+    void SetShaderValue(Shader shader, int locIndex, const void *value, int uniformType);               // Set shader uniform value
+    void SetShaderValueV(Shader shader, int locIndex, const void *value, int uniformType, int count);   // Set shader uniform value vector
+    void SetShaderValueMatrix(Shader shader, int locIndex, Matrix mat);         // Set shader uniform value (matrix 4x4)
+    void SetShaderValueTexture(Shader shader, int locIndex, Texture2D texture); // Set shader uniform value for texture (sampler2d)
+    void UnloadShader(Shader shader);                                    // Unload shader from GPU memory (VRAM)
+*/
+
+// Function to load shader
+JSC_DEFINE_HOST_FUNCTION(functionLoadShader, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader file names from the arguments
+    auto vsFileName = callFrame->argument(0).toWTFString(globalObject).utf8().data();
+    auto fsFileName = callFrame->argument(1).toWTFString(globalObject).utf8().data();
+
+    // Load shader from files and bind default locations
+    Shader shader = LoadShader(vsFileName, fsFileName);
+
+    // Return the shader as a JSValue (encoded as an integer)
+    return JSValue::encode(JSC::jsNumber(static_cast<double>(shader.id)));
+}
+
+// Function to load shader from memory
+JSC_DEFINE_HOST_FUNCTION(functionLoadShaderFromMemory, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader code strings from the arguments
+    auto vsCode = callFrame->argument(0).toWTFString(globalObject).utf8().data();
+    auto fsCode = callFrame->argument(1).toWTFString(globalObject).utf8().data();
+
+    // Load shader from code strings and bind default locations
+    Shader shader = LoadShaderFromMemory(vsCode, fsCode);
+
+    // Return the shader ID as a JSValue (encoded as a number)
+    return JSValue::encode(jsNumber(static_cast<double>(shader.id)));
+}
+
+
+// Function to check if a shader is ready
+JSC_DEFINE_HOST_FUNCTION(functionIsShaderReady, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader data from the argument
+    uintptr_t shaderPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+    Shader shader = { static_cast<unsigned int>(shaderPtr) };
+
+    // Check if a shader is ready
+    return JSValue::encode(jsBoolean(IsShaderReady(shader)));
+}
+
+// Function to get shader location
+JSC_DEFINE_HOST_FUNCTION(functionGetShaderLocation, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader data and uniform name from the arguments
+    uintptr_t shaderPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+    Shader shader = { static_cast<unsigned int>(shaderPtr) };
+    auto uniformName = callFrame->argument(1).toWTFString(globalObject).utf8().data();
+
+    // Get shader uniform location
+    return JSValue::encode(jsNumber(GetShaderLocation(shader, uniformName)));
+}
+
+// Function to get shader location attrib
+JSC_DEFINE_HOST_FUNCTION(functionGetShaderLocationAttrib, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader data and attribute name from the arguments
+    uintptr_t shaderPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+    Shader shader = { static_cast<unsigned int>(shaderPtr) };
+    auto attribName = callFrame->argument(1).toWTFString(globalObject).utf8().data();
+
+    // Get shader attribute location
+    return JSValue::encode(jsNumber(GetShaderLocationAttrib(shader, attribName)));
+}
+
+// Function to set shader value
+JSC_DEFINE_HOST_FUNCTION(functionSetShaderValue, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader data, location index, value and uniform type from the arguments
+    uintptr_t shaderPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+    Shader shader = { static_cast<unsigned int>(shaderPtr) };
+    auto locIndex = callFrame->argument(1).toInt32(globalObject);
+    auto value = callFrame->argument(2).asNumber();
+    auto uniformType = callFrame->argument(3).toInt32(globalObject);
+
+    // Set shader uniform value
+    SetShaderValue(shader, locIndex, &value, uniformType);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set shader value vector
+JSC_DEFINE_HOST_FUNCTION(functionSetShaderValueV, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader data, location index, value, uniform type and count from the arguments
+    uintptr_t shaderPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+    Shader shader = { static_cast<unsigned int>(shaderPtr) };
+    auto locIndex = callFrame->argument(1).toInt32(globalObject);
+    auto value = callFrame->argument(2).asNumber();
+    auto uniformType = callFrame->argument(3).toInt32(globalObject);
+    auto count = callFrame->argument(4).toInt32(globalObject);
+
+    // Set shader uniform value vector
+    SetShaderValueV(shader, locIndex, &value, uniformType, count);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set shader value matrix
+JSC_DEFINE_HOST_FUNCTION(functionSetShaderValueMatrix, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader pointer, location index, and matrix from the arguments
+    uintptr_t shaderPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+    Shader shader = { static_cast<unsigned int>(shaderPtr) };
+    auto locIndex = callFrame->argument(1).toInt32(globalObject);
+
+    // Get the matrix data from the argument
+    JSC::JSObject* matrixObject = callFrame->argument(2).toObject(globalObject);
+    Matrix mat = {
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m0"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m1"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m2"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m3"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m4"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m5"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m6"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m7"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m8"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m9"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m10"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m11"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m12"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m13"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m14"_s)).toNumber(globalObject)),
+        static_cast<float>(matrixObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "m15"_s)).toNumber(globalObject))
+    };
+
+    // Set shader uniform value (matrix 4x4)
+    SetShaderValueMatrix(shader, locIndex, mat);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set shader value texture
+JSC_DEFINE_HOST_FUNCTION(functionSetShaderValueTexture, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader data, location index and texture from the arguments
+    uintptr_t shaderPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+    Shader shader = { static_cast<unsigned int>(shaderPtr) };
+    auto locIndex = callFrame->argument(1).toInt32(globalObject);
+
+    // Get the texture data from the argument
+    JSC::JSObject* textureObject = callFrame->argument(2).toObject(globalObject);
+    Texture2D texture = { static_cast<unsigned int>(textureObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "id"_s)).toInt32(globalObject)) };
+
+    // Set shader uniform value for texture (sampler2d)
+    SetShaderValueTexture(shader, locIndex, texture);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to unload shader
+JSC_DEFINE_HOST_FUNCTION(functionUnloadShader, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the shader data from the argument
+    uintptr_t shaderPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+    Shader shader = { static_cast<unsigned int>(shaderPtr) };
+
+    // Unload shader from GPU memory (VRAM)
+    UnloadShader(shader);
+
+    return JSValue::encode(jsUndefined());
+}
+
+/* Shader management functions */
 
 // GUI functions END
 
@@ -1408,6 +1638,20 @@ JSC_DEFINE_HOST_FUNCTION(functionFileURLToPath, (JSC::JSGlobalObject * globalObj
     endScissorMode                                 functionEndScissorMode                                              DontDelete|Function 0
     beginVrStereoMode                              functionBeginVrStereoMode                                           DontDelete|Function 1
     endVrStereoMode                                functionEndVrStereoMode                                             DontDelete|Function 0
+
+    loadVrStereoConfig                             functionLoadVrStereoConfig                                          DontDelete|Function 1
+    unloadVrStereoConfig                           functionUnloadVrStereoConfig                                        DontDelete|Function 1
+
+    loadShader                                     functionLoadShader                                                  DontDelete|Function 2
+    loadShaderFromMemory                           functionLoadShaderFromMemory                                        DontDelete|Function 2
+    isShaderReady                                  functionIsShaderReady                                               DontDelete|Function 1
+    getShaderLocation                              functionGetShaderLocation                                           DontDelete|Function 2
+    getShaderLocationAttrib                        functionGetShaderLocationAttrib                                     DontDelete|Function 2
+    setShaderValue                                 functionSetShaderValue                                              DontDelete|Function 4
+    setShaderValueV                                functionSetShaderValueV                                             DontDelete|Function 5
+    setShaderValueMatrix                           functionSetShaderValueMatrix                                        DontDelete|Function 3
+    setShaderValueTexture                          functionSetShaderValueTexture                                       DontDelete|Function 3
+    unloadShader                                   functionUnloadShader                                                DontDelete|Function 1
     
     openInEditor                                   BunObject_callback_openInEditor                                     DontDelete|Function 1
     origin                                         BunObject_getter_wrap_origin                                        DontDelete|PropertyCallback
