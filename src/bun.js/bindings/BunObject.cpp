@@ -1455,6 +1455,725 @@ JSC_DEFINE_HOST_FUNCTION(functionUnloadShader, (JSGlobalObject *globalObject, JS
 
 /* Shader management functions */
 
+/*
+    // Screen-space-related functions
+    Ray GetMouseRay(Vector2 mousePosition, Camera camera);      // Get a ray trace from mouse position
+    Matrix GetCameraMatrix(Camera camera);                      // Get camera transform matrix (view matrix)
+    Matrix GetCameraMatrix2D(Camera2D camera);                  // Get camera 2d transform matrix
+    Vector2 GetWorldToScreen(Vector3 position, Camera camera);  // Get the screen space position for a 3d world space position
+    Vector2 GetScreenToWorld2D(Vector2 position, Camera2D camera); // Get the world space position for a 2d camera screen space position
+    Vector2 GetWorldToScreenEx(Vector3 position, Camera camera, int width, int height); // Get size position for a 3d world space position
+    Vector2 GetWorldToScreen2D(Vector2 position, Camera2D camera); // Get the screen space position for a 2d camera world space position
+*/
+
+// Function to get mouse ray
+JSC_DEFINE_HOST_FUNCTION(functionGetMouseRay, (JSGlobalObject *globalObject, JSC::CallFrame *callFrame)) {
+    // Get the mouse position and camera data from the arguments
+    JSC::JSObject* mousePositionObject = callFrame->argument(0).toObject(globalObject);
+    JSC::JSObject* cameraObject = callFrame->argument(1).toObject(globalObject);
+
+    Vector2 mousePosition = {
+        static_cast<float>(mousePositionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+        static_cast<float>(mousePositionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject))
+    };
+
+    Camera camera = {
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "position"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "position"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "position"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+        },
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+        },
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "up"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "up"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+        },
+
+        static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "fovy"_s)).toNumber(globalObject)),
+        cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "type"_s)).toInt32(globalObject)
+    };
+
+    // Get a ray trace from mouse position
+    Ray ray = GetMouseRay(mousePosition, camera);
+
+    // Create a JS object to represent the Ray
+    JSC::VM& vm = globalObject->vm();
+    JSC::Structure* structure = JSC::JSFinalObject::createStructure(vm, globalObject, globalObject->objectPrototype(), 0);
+    JSC::JSFinalObject* rayObject = JSC::JSFinalObject::create(vm, structure);
+
+    // Create JS objects for the position and direction vectors
+    JSC::JSObject* positionObject = JSC::constructEmptyObject(globalObject);
+    positionObject->putDirect(vm, JSC::Identifier::fromString(vm, "x"_s), JSC::jsNumber(ray.position.x));
+    positionObject->putDirect(vm, JSC::Identifier::fromString(vm, "y"_s), JSC::jsNumber(ray.position.y));
+    positionObject->putDirect(vm, JSC::Identifier::fromString(vm, "z"_s), JSC::jsNumber(ray.position.z));
+
+    JSC::JSObject* directionObject = JSC::constructEmptyObject(globalObject);
+    directionObject->putDirect(vm, JSC::Identifier::fromString(vm, "x"_s), JSC::jsNumber(ray.direction.x));
+    directionObject->putDirect(vm, JSC::Identifier::fromString(vm, "y"_s), JSC::jsNumber(ray.direction.y));
+    directionObject->putDirect(vm, JSC::Identifier::fromString(vm, "z"_s), JSC::jsNumber(ray.direction.z));
+
+    // Set the position and direction objects in the ray object
+    rayObject->putDirect(vm, JSC::Identifier::fromString(vm, "position"_s), positionObject);
+    rayObject->putDirect(vm, JSC::Identifier::fromString(vm, "direction"_s), directionObject);
+
+    return JSValue::encode(rayObject);
+}
+
+// Function to get camera matrix
+JSC_DEFINE_HOST_FUNCTION(functionGetCameraMatrix, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+
+    // Get the camera data from the argument
+    uintptr_t cameraPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+
+    // Assuming cameraPtr somehow represents a position or identifier
+    Vector3 cameraPosition = { static_cast<float>(cameraPtr), 0.0f, 0.0f }; // Example initialization of position
+
+    // Initialize Camera with required parameters
+    Camera camera;
+    camera.position = cameraPosition; // Assuming Camera has a position member
+
+    // Get camera transform matrix (view matrix)
+    Matrix mat = GetCameraMatrix(camera);
+
+    // Create a JS object to represent the Matrix
+    JSC::Structure* structure = JSC::JSFinalObject::createStructure(vm, globalObject, globalObject->objectPrototype(), 0);
+    JSC::JSFinalObject* matrixObject = JSC::JSFinalObject::create(vm, structure);
+
+    // Populate the matrixObject with matrix values
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m0"_s), JSC::jsNumber(mat.m0));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m1"_s), JSC::jsNumber(mat.m1));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m2"_s), JSC::jsNumber(mat.m2));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m3"_s), JSC::jsNumber(mat.m3));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m4"_s), JSC::jsNumber(mat.m4));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m5"_s), JSC::jsNumber(mat.m5));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m6"_s), JSC::jsNumber(mat.m6));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m7"_s), JSC::jsNumber(mat.m7));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m8"_s), JSC::jsNumber(mat.m8));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m9"_s), JSC::jsNumber(mat.m9));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m10"_s), JSC::jsNumber(mat.m10));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m11"_s), JSC::jsNumber(mat.m11));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m12"_s), JSC::jsNumber(mat.m12));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m13"_s), JSC::jsNumber(mat.m13));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m14"_s), JSC::jsNumber(mat.m14));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m15"_s), JSC::jsNumber(mat.m15));
+
+    return JSValue::encode(matrixObject);
+}
+
+// Function to get camera matrix 2D
+JSC_DEFINE_HOST_FUNCTION(functionGetCameraMatrix2D, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+
+    // Get the camera data from the argument
+    uintptr_t cameraPtr = static_cast<uintptr_t>(callFrame->argument(0).asNumber());
+
+    // Assuming cameraPtr somehow represents a position or identifier
+    Vector2 cameraPosition = { static_cast<float>(cameraPtr), 0.0f }; // Example initialization of position
+
+    // Initialize Camera2D with required parameters
+    Camera2D camera;
+    camera.offset = cameraPosition; // Assuming Camera2D has an offset member
+
+    // Get camera 2d transform matrix
+    Matrix mat = GetCameraMatrix2D(camera);
+
+    // Create a JS object to represent the Matrix
+    JSC::Structure* structure = JSC::JSFinalObject::createStructure(vm, globalObject, globalObject->objectPrototype(), 0);
+    JSC::JSFinalObject* matrixObject = JSC::JSFinalObject::create(vm, structure);
+
+    // Populate the matrixObject with matrix values
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m0"_s), JSC::jsNumber(mat.m0));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m1"_s), JSC::jsNumber(mat.m1));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m2"_s), JSC::jsNumber(mat.m2));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m3"_s), JSC::jsNumber(mat.m3));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m4"_s), JSC::jsNumber(mat.m4));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m5"_s), JSC::jsNumber(mat.m5));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m6"_s), JSC::jsNumber(mat.m6));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m7"_s), JSC::jsNumber(mat.m7));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m8"_s), JSC::jsNumber(mat.m8));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m9"_s), JSC::jsNumber(mat.m9));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m10"_s), JSC::jsNumber(mat.m10));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m11"_s), JSC::jsNumber(mat.m11));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m12"_s), JSC::jsNumber(mat.m12));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m13"_s), JSC::jsNumber(mat.m13));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m14"_s), JSC::jsNumber(mat.m14));
+    matrixObject->putDirect(vm, JSC::Identifier::fromString(vm, "m15"_s), JSC::jsNumber(mat.m15));
+
+    return JSValue::encode(matrixObject);
+}
+
+// Function to get world to screen
+JSC_DEFINE_HOST_FUNCTION(functionGetWorldToScreen, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+
+    // Get the position and camera data from the arguments
+    JSC::JSObject* positionObject = callFrame->argument(0).toObject(globalObject);
+    JSC::JSObject* cameraObject = callFrame->argument(1).toObject(globalObject);
+
+    Vector3 position = {
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+    };
+
+    Camera camera = {
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "position"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "position"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "position"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+        },
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+        },
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "up"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "up"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+        },
+
+        static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "fovy"_s)).toNumber(globalObject)),
+        cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "type"_s)).toInt32(globalObject)
+    };
+
+    // Get the screen space position for a 3d world space position
+    Vector2 screenPosition = GetWorldToScreen(position, camera);
+
+    // Create a JS object to represent the Vector2
+    JSC::Structure* structure = JSC::JSFinalObject::createStructure(vm, globalObject, globalObject->objectPrototype(), 0);
+    JSC::JSFinalObject* screenPositionObject = JSC::JSFinalObject::create(vm, structure);
+
+    // Populate the screenPositionObject with screen position values
+    screenPositionObject->putDirect(vm, JSC::Identifier::fromString(vm, "x"_s), JSC::jsNumber(screenPosition.x));
+    screenPositionObject->putDirect(vm, JSC::Identifier::fromString(vm, "y"_s), JSC::jsNumber(screenPosition.y));
+
+    return JSValue::encode(screenPositionObject);
+}
+
+// Function to get screen to world 2D
+JSC_DEFINE_HOST_FUNCTION(functionGetScreenToWorld2D, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+
+    // Get the position and camera data from the arguments
+    JSC::JSObject* positionObject = callFrame->argument(0).toObject(globalObject);
+    JSC::JSObject* cameraObject = callFrame->argument(1).toObject(globalObject);
+
+    Vector2 position = {
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject))
+    };
+
+    Camera2D camera = {
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "offset"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "offset"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject))
+        },
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject))
+        },
+        static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "rotation"_s)).toNumber(globalObject)),
+        static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "zoom"_s)).toNumber(globalObject))
+    };
+
+    // Get the world space position for a 2d camera screen space position
+    Vector2 worldPosition = GetScreenToWorld2D(position, camera);
+
+    // Create a JS object to represent the Vector2
+    JSC::Structure* structure = JSC::JSFinalObject::createStructure(vm, globalObject, globalObject->objectPrototype(), 0);
+    JSC::JSFinalObject* worldPositionObject = JSC::JSFinalObject::create(vm, structure);
+
+    // Populate the worldPositionObject with world position values
+    worldPositionObject->putDirect(vm, JSC::Identifier::fromString(vm, "x"_s), JSC::jsNumber(worldPosition.x));
+    worldPositionObject->putDirect(vm, JSC::Identifier::fromString(vm, "y"_s), JSC::jsNumber(worldPosition.y));
+
+    return JSValue::encode(worldPositionObject);
+}
+
+// Function to get world to screen ex
+JSC_DEFINE_HOST_FUNCTION(functionGetWorldToScreenEx, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+
+    // Get the position, camera data, width and height from the arguments
+    JSC::JSObject* positionObject = callFrame->argument(0).toObject(globalObject);
+    JSC::JSObject* cameraObject = callFrame->argument(1).toObject(globalObject);
+    auto width = callFrame->argument(2).toInt32(globalObject);
+    auto height = callFrame->argument(3).toInt32(globalObject);
+
+    Vector3 position = {
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+    };
+
+    Camera camera = {
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "position"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "position"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "position"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+        },
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+        },
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "up"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "up"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "z"_s)).toNumber(globalObject))
+        },
+
+        static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "fovy"_s)).toNumber(globalObject)),
+        cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "type"_s)).toInt32(globalObject)
+    };
+
+    // Get size position for a 3d world space position
+    Vector2 screenPosition = GetWorldToScreenEx(position, camera, width, height);
+
+    // Create a JS object to represent the Vector2
+    JSC::Structure* structure = JSC::JSFinalObject::createStructure(vm, globalObject, globalObject->objectPrototype(), 0);
+    JSC::JSFinalObject* screenPositionObject = JSC::JSFinalObject::create(vm, structure);
+
+    // Populate the screenPositionObject with screen position values
+    screenPositionObject->putDirect(vm, JSC::Identifier::fromString(vm, "x"_s), JSC::jsNumber(screenPosition.x));
+    screenPositionObject->putDirect(vm, JSC::Identifier::fromString(vm, "y"_s), JSC::jsNumber(screenPosition.y));
+
+    return JSValue::encode(screenPositionObject);
+}
+
+// Function to get world to screen 2D
+JSC_DEFINE_HOST_FUNCTION(functionGetWorldToScreen2D, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+
+    // Get the position and camera data from the arguments
+    JSC::JSObject* positionObject = callFrame->argument(0).toObject(globalObject);
+    JSC::JSObject* cameraObject = callFrame->argument(1).toObject(globalObject);
+
+    Vector2 position = {
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+        static_cast<float>(positionObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject))
+    };
+
+    Camera2D camera = {
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "offset"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "offset"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject))
+        },
+        { 
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "x"_s)).toNumber(globalObject)),
+            static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "target"_s)).toObject(globalObject)->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "y"_s)).toNumber(globalObject))
+        },
+        static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "rotation"_s)).toNumber(globalObject)),
+        static_cast<float>(cameraObject->get(globalObject, JSC::Identifier::fromString(globalObject->vm(), "zoom"_s)).toNumber(globalObject))
+    };
+
+    // Get the screen space position for a 2d camera world space position
+    Vector2 screenPosition = GetWorldToScreen2D(position, camera);
+
+    // Create a JS object to represent the Vector2
+    JSC::Structure* structure = JSC::JSFinalObject::createStructure(vm, globalObject, globalObject->objectPrototype(), 0);
+    JSC::JSFinalObject* screenPositionObject = JSC::JSFinalObject::create(vm, structure);
+
+    // Populate the screenPositionObject with screen position values
+    screenPositionObject->putDirect(vm, JSC::Identifier::fromString(vm, "x"_s), JSC::jsNumber(screenPosition.x));
+    screenPositionObject->putDirect(vm, JSC::Identifier::fromString(vm, "y"_s), JSC::jsNumber(screenPosition.y));
+
+    return JSValue::encode(screenPositionObject);
+}
+/* Screen-space-related functions */
+
+/*
+// Timing-related functions
+    void SetTargetFPS(int fps);                                 // Set target FPS (maximum)
+    float GetFrameTime(void);                                   // Get time in seconds for last frame drawn (delta time)
+    double GetTime(void);                                       // Get elapsed time in seconds since InitWindow()
+    int GetFPS(void);                                           // Get current FPS
+
+*/
+
+// Function to set target FPS
+JSC_DEFINE_HOST_FUNCTION(functionSetTargetFPS, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the target FPS from the argument
+    auto fps = callFrame->argument(0).toInt32(globalObject);
+
+    // Set target FPS (maximum)
+    SetTargetFPS(fps);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to get frame time
+JSC_DEFINE_HOST_FUNCTION(functionGetFrameTime, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get time in seconds for last frame drawn (delta time)
+    auto frameTime = GetFrameTime();
+
+    return JSValue::encode(JSC::jsNumber(frameTime));
+}
+
+// Function to get time
+JSC_DEFINE_HOST_FUNCTION(functionGetTime, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get elapsed time in seconds since InitWindow()
+    auto time = GetTime();
+
+    return JSValue::encode(JSC::jsNumber(time));
+}
+
+// Function to get FPS
+JSC_DEFINE_HOST_FUNCTION(functionGetFPS, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get current FPS
+    auto fps = GetFPS();
+
+    return JSValue::encode(JSC::jsNumber(fps));
+}
+
+/* Timing-related functions */
+
+/*
+    // Custom frame control functions
+    // NOTE: Those functions are intended for advance users that want full control over the frame processing
+    // By default EndDrawing() does this job: draws everything + SwapScreenBuffer() + manage frame timing + PollInputEvents()
+    // To avoid that behaviour and control frame processes manually, enable in config.h: SUPPORT_CUSTOM_FRAME_CONTROL
+    void SwapScreenBuffer(void);                                // Swap back buffer with front buffer (screen drawing)
+    void PollInputEvents(void);                                 // Register all input events
+    void WaitTime(double seconds);                              // Wait for some time (halt program execution)
+
+    // Random values generation functions
+    void SetRandomSeed(unsigned int seed);                      // Set the seed for the random number generator
+    int GetRandomValue(int min, int max);                       // Get a random value between min and max (both included)
+    int *LoadRandomSequence(unsigned int count, int min, int max); // Load random values sequence, no values repeated
+    void UnloadRandomSequence(int *sequence);                   // Unload random values sequence
+
+    // Misc. functions
+    void TakeScreenshot(const char *fileName);                  // Takes a screenshot of current screen (filename extension defines format)
+    void SetConfigFlags(unsigned int flags);                    // Setup init configuration flags (view FLAGS)
+    void OpenURL(const char *url);                              // Open URL with default system browser (if available)
+
+    // NOTE: Following functions implemented in module [utils]
+    //------------------------------------------------------------------
+    void TraceLog(int logLevel, const char *text, ...);         // Show trace log messages (LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR...)
+    void SetTraceLogLevel(int logLevel);                        // Set the current threshold (minimum) log level
+    void *MemAlloc(unsigned int size);                          // Internal memory allocator
+    void *MemRealloc(void *ptr, unsigned int size);             // Internal memory reallocator
+    void MemFree(void *ptr);                                    // Internal memory free
+
+    // Set custom callbacks
+    // WARNING: Callbacks setup is intended for advance users
+    void SetTraceLogCallback(TraceLogCallback callback);         // Set custom trace log
+    void SetLoadFileDataCallback(LoadFileDataCallback callback); // Set custom file binary data loader
+    void SetSaveFileDataCallback(SaveFileDataCallback callback); // Set custom file binary data saver
+    void SetLoadFileTextCallback(LoadFileTextCallback callback); // Set custom file text data loader
+    void SetSaveFileTextCallback(SaveFileTextCallback callback); // Set custom file text data saver
+
+    // Files management functions
+    unsigned char *LoadFileData(const char *fileName, int *dataSize); // Load file data as byte array (read)
+    void UnloadFileData(unsigned char *data);                   // Unload file data allocated by LoadFileData()
+    bool SaveFileData(const char *fileName, void *data, int dataSize); // Save data to file from byte array (write), returns true on success
+    bool ExportDataAsCode(const unsigned char *data, int dataSize, const char *fileName); // Export data to code (.h), returns true on success
+    char *LoadFileText(const char *fileName);                   // Load text data from file (read), returns a '\0' terminated string
+    void UnloadFileText(char *text);                            // Unload file text data allocated by LoadFileText()
+    bool SaveFileText(const char *fileName, char *text);        // Save text data to file (write), string must be '\0' terminated, returns true on success
+    //------------------------------------------------------------------
+
+    // File system functions
+    bool FileExists(const char *fileName);                      // Check if file exists
+    bool DirectoryExists(const char *dirPath);                  // Check if a directory path exists
+    bool IsFileExtension(const char *fileName, const char *ext); // Check file extension (including point: .png, .wav)
+    int GetFileLength(const char *fileName);                    // Get file length in bytes (NOTE: GetFileSize() conflicts with windows.h)
+    const char *GetFileExtension(const char *fileName);         // Get pointer to extension for a filename string (includes dot: '.png')
+    const char *GetFileName(const char *filePath);              // Get pointer to filename for a path string
+    const char *GetFileNameWithoutExt(const char *filePath);    // Get filename string without extension (uses static string)
+    const char *GetDirectoryPath(const char *filePath);         // Get full path for a given fileName with path (uses static string)
+    const char *GetPrevDirectoryPath(const char *dirPath);      // Get previous directory path for a given path (uses static string)
+    const char *GetWorkingDirectory(void);                      // Get current working directory (uses static string)
+    const char *GetApplicationDirectory(void);                  // Get the directory of the running application (uses static string)
+    bool ChangeDirectory(const char *dir);                      // Change working directory, return true on success
+    bool IsPathFile(const char *path);                          // Check if a given path is a file or a directory
+    FilePathList LoadDirectoryFiles(const char *dirPath);       // Load directory filepaths
+    FilePathList LoadDirectoryFilesEx(const char *basePath, const char *filter, bool scanSubdirs); // Load directory filepaths with extension filtering and recursive directory scan
+    void UnloadDirectoryFiles(FilePathList files);              // Unload filepaths
+    bool IsFileDropped(void);                                   // Check if a file has been dropped into window
+    FilePathList LoadDroppedFiles(void);                        // Load dropped filepaths
+    void UnloadDroppedFiles(FilePathList files);                // Unload dropped filepaths
+    long GetFileModTime(const char *fileName);                  // Get file modification time (last write time)
+
+    // Compression/Encoding functionality
+    unsigned char *CompressData(const unsigned char *data, int dataSize, int *compDataSize);        // Compress data (DEFLATE algorithm), memory must be MemFree()
+    unsigned char *DecompressData(const unsigned char *compData, int compDataSize, int *dataSize);  // Decompress data (DEFLATE algorithm), memory must be MemFree()
+    char *EncodeDataBase64(const unsigned char *data, int dataSize, int *outputSize);               // Encode data to Base64 string, memory must be MemFree()
+    unsigned char *DecodeDataBase64(const unsigned char *data, int *outputSize);                    // Decode Base64 string data, memory must be MemFree()
+
+    // Automation events functionality
+    AutomationEventList LoadAutomationEventList(const char *fileName);                // Load automation events list from file, NULL for empty list, capacity = MAX_AUTOMATION_EVENTS
+    void UnloadAutomationEventList(AutomationEventList *list);                        // Unload automation events list from file
+    bool ExportAutomationEventList(AutomationEventList list, const char *fileName);   // Export automation events list as text file
+    void SetAutomationEventList(AutomationEventList *list);                           // Set automation event list to record to
+    void SetAutomationEventBaseFrame(int frame);                                      // Set automation event internal base frame to start recording
+    void StartAutomationEventRecording(void);                                         // Start recording automation events (AutomationEventList must be set)
+    void StopAutomationEventRecording(void);                                          // Stop recording automation events
+    void PlayAutomationEvent(AutomationEvent event);                                  // Play a recorded automation event
+
+*/
+
+// Function to swap screen buffer
+JSC_DEFINE_HOST_FUNCTION(functionSwapScreenBuffer, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Swap back buffer with front buffer (screen drawing)
+    SwapScreenBuffer();
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to poll input events
+JSC_DEFINE_HOST_FUNCTION(functionPollInputEvents, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Register all input events
+    PollInputEvents();
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to wait for some time
+JSC_DEFINE_HOST_FUNCTION(functionWaitTime, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the time from the argument
+    auto seconds = callFrame->argument(0).toNumber(globalObject);
+
+    // Wait for some time (halt program execution)
+    WaitTime(seconds);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set random seed
+JSC_DEFINE_HOST_FUNCTION(functionSetRandomSeed, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the seed from the argument
+    auto seed = callFrame->argument(0).toInt32(globalObject);
+
+    // Set the seed for the random number generator
+    SetRandomSeed(seed);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to get random value
+JSC_DEFINE_HOST_FUNCTION(functionGetRandomValue, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the min and max values from the arguments
+    auto min = callFrame->argument(0).toInt32(globalObject);
+    auto max = callFrame->argument(1).toInt32(globalObject);
+
+    // Get a random value between min and max (both included)
+    auto randomValue = GetRandomValue(min, max);
+
+    return JSValue::encode(JSC::jsNumber(randomValue));
+}
+
+// Function to load random sequence
+JSC_DEFINE_HOST_FUNCTION(functionLoadRandomSequence, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the count, min and max values from the arguments
+    auto count = callFrame->argument(0).toInt32(globalObject);
+    auto min = callFrame->argument(1).toInt32(globalObject);
+    auto max = callFrame->argument(2).toInt32(globalObject);
+
+    // Load random values sequence, no values repeated
+    auto sequence = LoadRandomSequence(count, min, max);
+
+    return JSValue::encode(JSC::jsNumber(reinterpret_cast<uintptr_t>(sequence)));
+}
+
+// Function to unload random sequence
+JSC_DEFINE_HOST_FUNCTION(functionUnloadRandomSequence, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+    auto throwScope = DECLARE_THROW_SCOPE(vm);
+
+    // Get the first argument
+    auto sequenceValue = callFrame->argument(0);
+
+    // Check if the argument is an object
+    auto sequenceObject = JSC::jsDynamicCast<JSC::JSObject*>(sequenceValue);
+    if (UNLIKELY(!sequenceObject)) {
+        throwTypeError(globalObject, throwScope, "Argument must be an object"_s);
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Assuming your function expects a specific type of object argument
+    // Get the sequence pointer from the object (assuming the object has a property 'sequencePtr')
+    auto sequencePtrValue = sequenceObject->getDirect(globalObject->vm(), JSC::Identifier::fromString(globalObject->vm(), "sequencePtr"_s));
+    RETURN_IF_EXCEPTION(throwScope, JSValue::encode(jsUndefined()));
+
+    if (!sequencePtrValue.isNumber()) {
+        throwTypeError(globalObject, throwScope, "Property 'sequencePtr' must be a number"_s);
+        return JSValue::encode(jsUndefined());
+    }
+
+    uintptr_t sequencePtr = static_cast<uintptr_t>(sequencePtrValue.asNumber());
+    int* sequence = reinterpret_cast<int*>(sequencePtr);
+
+    // Unload random values sequence
+    UnloadRandomSequence(sequence);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to take screenshot
+JSC_DEFINE_HOST_FUNCTION(functionTakeScreenshot, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file name from the argument
+    auto fileName = callFrame->argument(0).toWTFString(globalObject);
+
+    // Takes a screenshot of current screen (filename extension defines format)
+    TakeScreenshot(fileName.utf8().data());
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set config flags
+JSC_DEFINE_HOST_FUNCTION(functionSetConfigFlags, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the flags from the argument
+    auto flags = callFrame->argument(0).toInt32(globalObject);
+
+    // Setup init configuration flags (view FLAGS)
+    SetConfigFlags(flags);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to open URL
+JSC_DEFINE_HOST_FUNCTION(functionOpenURL, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the URL from the argument
+    auto url = callFrame->argument(0).toWTFString(globalObject);
+
+    // Open URL with default system browser (if available)
+    OpenURL(url.utf8().data());
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to trace log
+JSC_DEFINE_HOST_FUNCTION(functionTraceLog, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the log level and text from the arguments
+    auto logLevel = callFrame->argument(0).toInt32(globalObject);
+    auto text = callFrame->argument(1).toWTFString(globalObject);
+
+    // Show trace log messages (LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR...)
+    TraceLog(logLevel, text.utf8().data());
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to set trace log level
+JSC_DEFINE_HOST_FUNCTION(functionSetTraceLogLevel, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the log level from the argument
+    auto logLevel = callFrame->argument(0).toInt32(globalObject);
+
+    // Set the current threshold (minimum) log level
+    SetTraceLogLevel(logLevel);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to memory allocate
+JSC_DEFINE_HOST_FUNCTION(functionMemAlloc, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the size from the argument
+    auto size = callFrame->argument(0).toInt32(globalObject);
+
+    // Internal memory allocator
+    auto memory = MemAlloc(size);
+
+    return JSValue::encode(JSC::jsNumber(reinterpret_cast<uintptr_t>(memory)));
+}
+
+// Function to memory reallocate
+JSC_DEFINE_HOST_FUNCTION(functionMemRealloc, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    auto& vm = globalObject->vm();
+    auto throwScope = DECLARE_THROW_SCOPE(vm);
+
+    // Get the pointer and size from the arguments
+    auto ptrValue = callFrame->argument(0);
+    auto sizeValue = callFrame->argument(1);
+
+    if (!ptrValue.isNumber() || !sizeValue.isNumber()) {
+        throwException(globalObject, throwScope, createTypeError(globalObject, "Invalid arguments"_s));
+        return JSValue::encode(jsUndefined());
+    }
+
+    auto ptr = reinterpret_cast<void*>(static_cast<uintptr_t>(ptrValue.asNumber()));
+    auto size = sizeValue.toInt32(globalObject);
+    RETURN_IF_EXCEPTION(throwScope, JSValue::encode(jsUndefined()));
+
+    // Internal memory reallocator
+    auto memory = MemRealloc(ptr, size);
+
+    return JSValue::encode(JSC::jsNumber(reinterpret_cast<uintptr_t>(memory)));
+}
+
+
+
+// Function to memory free
+JSC_DEFINE_HOST_FUNCTION(functionMemFree, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Declare the throw scope
+    auto& vm = globalObject->vm();
+    auto throwScope = DECLARE_THROW_SCOPE(vm);
+
+    // Get the pointer from the argument
+    auto arg0 = callFrame->argument(0);
+
+    // Ensure the argument is a number and then cast it to a pointer
+    if (!arg0.isNumber()) {
+        throwException(globalObject, throwScope, createTypeError(globalObject, "Argument must be a number representing a pointer"_s));
+        return JSValue::encode(jsUndefined());
+    }
+
+    auto ptr = reinterpret_cast<void*>(static_cast<uintptr_t>(arg0.asNumber()));
+
+    // Internal memory free
+    MemFree(ptr);
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to load file data
+JSC_DEFINE_HOST_FUNCTION(functionLoadFileData, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file name from the argument
+    auto fileName = callFrame->argument(0).toWTFString(globalObject);
+
+    // Load file data as byte array (read)
+    int dataSize = 0;
+    unsigned char* data = LoadFileData(fileName.utf8().data(), &dataSize);
+
+    if (!data || dataSize == 0) {
+        // Handle error: Unable to load file data
+        // Return undefined or throw an exception
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Create a JS object to represent the data
+    JSC::VM& vm = globalObject->vm();
+    JSC::Structure* structure = JSC::JSArrayBuffer::createStructure(vm, globalObject, globalObject->arrayBufferStructure());
+
+    // Create ArrayBuffer using ArrayBuffer::create
+    auto arrayBufferData = JSC::ArrayBuffer::tryCreate(data, dataSize);
+    if (!arrayBufferData) {
+        // Handle error: Unable to create ArrayBuffer
+        // Return undefined or throw an exception
+        UnloadFileData(data);
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Create JSArrayBuffer using the ArrayBuffer
+    auto arrayBufferJS = JSC::JSArrayBuffer::create(vm, structure, WTFMove(arrayBufferData));
+
+    // Unload the file data (now managed by JSArrayBuffer)
+    // No need to manually free 'data' as it is now managed by JSArrayBuffer
+    // UnloadFileData(data);
+
+    return JSValue::encode(arrayBufferJS);
+}
+
+
+/* Custom frame control functions */
 // GUI functions END
 
 JSC_DEFINE_HOST_FUNCTION(functionPathToFileURL, (JSC::JSGlobalObject * lexicalGlobalObject, JSC::CallFrame* callFrame))
@@ -1652,6 +2371,21 @@ JSC_DEFINE_HOST_FUNCTION(functionFileURLToPath, (JSC::JSGlobalObject * globalObj
     setShaderValueMatrix                           functionSetShaderValueMatrix                                        DontDelete|Function 3
     setShaderValueTexture                          functionSetShaderValueTexture                                       DontDelete|Function 3
     unloadShader                                   functionUnloadShader                                                DontDelete|Function 1
+
+    getMouseRay                                    functionGetMouseRay                                                 DontDelete|Function 2
+    getCameraMatrix                                functionGetCameraMatrix                                             DontDelete|Function 1
+    getCameraMatrix2D                              functionGetCameraMatrix2D                                           DontDelete|Function 1
+    getWorldToScreen                               functionGetWorldToScreen                                            DontDelete|Function 2
+    getScreenToWorld2D                             functionGetScreenToWorld2D                                          DontDelete|Function 2
+    getWorldToScreenEx                             functionGetWorldToScreenEx                                          DontDelete|Function 4
+    getWorldToScreen2D                             functionGetWorldToScreen2D                                          DontDelete|Function 2
+
+    setTargetFPS                                   functionSetTargetFPS                                                DontDelete|Function 1
+    getFrameTime                                   functionGetFrameTime                                                DontDelete|Function 0
+    getTime                                        functionGetTime                                                     DontDelete|Function 0
+    getFPS                                         functionGetFPS                                                      DontDelete|Function 0
+
+
     
     openInEditor                                   BunObject_callback_openInEditor                                     DontDelete|Function 1
     origin                                         BunObject_getter_wrap_origin                                        DontDelete|PropertyCallback
