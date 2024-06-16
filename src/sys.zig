@@ -105,6 +105,7 @@ pub const Tag = enum(u8) {
     rename,
     stat,
     symlink,
+    symlinkat,
     unlink,
     utimes,
     write,
@@ -1745,9 +1746,19 @@ pub fn chown(path: [:0]const u8, uid: os.uid_t, gid: os.gid_t) Maybe(void) {
     }
 }
 
-pub fn symlink(from: [:0]const u8, to: [:0]const u8) Maybe(void) {
+pub fn symlink(target: [:0]const u8, dest: [:0]const u8) Maybe(void) {
     while (true) {
-        if (Maybe(void).errnoSys(sys.symlink(from, to), .symlink)) |err| {
+        if (Maybe(void).errnoSys(sys.symlink(target, dest), .symlink)) |err| {
+            if (err.getErrno() == .INTR) continue;
+            return err;
+        }
+        return Maybe(void).success;
+    }
+}
+
+pub fn symlinkat(target: [:0]const u8, dirfd: bun.FileDescriptor, dest: [:0]const u8) Maybe(void) {
+    while (true) {
+        if (Maybe(void).errnoSys(sys.symlinkat(target, dirfd.cast(), dest), .symlinkat)) |err| {
             if (err.getErrno() == .INTR) continue;
             return err;
         }
@@ -1774,12 +1785,14 @@ pub const WindowsSymlinkOptions = packed struct {
     pub var has_failed_to_create_symlink = false;
 };
 
-pub fn symlinkOrJunctionOnWindows(dest: [:0]const u8, target: [:0]const u8) Maybe(void) {
+pub fn symlinkOrJunction(dest: [:0]const u8, target: [:0]const u8) Maybe(void) {
+    if (comptime !Environment.isWindows) @compileError("symlinkOrJunction is windows only");
+
     if (!WindowsSymlinkOptions.has_failed_to_create_symlink) {
         var sym16: bun.WPathBuffer = undefined;
         var target16: bun.WPathBuffer = undefined;
-        const sym_path = bun.strings.toNTPath(&sym16, dest);
-        const target_path = bun.strings.toNTPath(&target16, target);
+        const sym_path = bun.strings.toWPathNormalizeAutoExtend(&sym16, dest);
+        const target_path = bun.strings.toWPathNormalizeAutoExtend(&target16, target);
         switch (symlinkW(sym_path, target_path, .{ .directory = true })) {
             .result => {
                 return Maybe(void).success;
@@ -2958,7 +2971,7 @@ pub const File = struct {
     /// 2. Open a file for reading
     /// 2. Read the file to a buffer
     /// 3. Return the File handle and the buffer
-    pub fn readFromUserInput(dir_fd: anytype, input_path: anytype, allocator: std.mem.Allocator) Maybe([]u8) {
+    pub fn readFromUserInput(dir_fd: anytype, input_path: anytype, allocator: std.mem.Allocator) Maybe([:0]u8) {
         var buf: bun.PathBuffer = undefined;
         const normalized = bun.path.joinAbsStringBufZ(
             bun.fs.FileSystem.instance.top_level_dir,
@@ -2972,7 +2985,7 @@ pub const File = struct {
     /// 1. Open a file for reading
     /// 2. Read the file to a buffer
     /// 3. Return the File handle and the buffer
-    pub fn readFileFrom(dir_fd: anytype, path: anytype, allocator: std.mem.Allocator) Maybe(struct { File, []u8 }) {
+    pub fn readFileFrom(dir_fd: anytype, path: anytype, allocator: std.mem.Allocator) Maybe(struct { File, [:0]u8 }) {
         const ElementType = std.meta.Elem(@TypeOf(path));
 
         const rc = brk: {
@@ -3000,14 +3013,22 @@ pub const File = struct {
             return .{ .err = err };
         }
 
-        return .{ .result = .{ this, result.bytes.items } };
+        if (result.bytes.items.len == 0) {
+            // Don't allocate an empty string.
+            // We won't be modifying an empty slice, anyway.
+            return .{ .result = .{ this, @ptrCast(@constCast("")) } };
+        }
+
+        result.bytes.append(0) catch bun.outOfMemory();
+
+        return .{ .result = .{ this, result.bytes.items[0 .. result.bytes.items.len - 1 :0] } };
     }
 
     /// 1. Open a file for reading relative to a directory
     /// 2. Read the file to a buffer
     /// 3. Close the file
     /// 4. Return the buffer
-    pub fn readFrom(dir_fd: anytype, path: anytype, allocator: std.mem.Allocator) Maybe([]u8) {
+    pub fn readFrom(dir_fd: anytype, path: anytype, allocator: std.mem.Allocator) Maybe([:0]u8) {
         const file, const bytes = switch (readFileFrom(dir_fd, path, allocator)) {
             .err => |err| return .{ .err = err },
             .result => |result| result,
