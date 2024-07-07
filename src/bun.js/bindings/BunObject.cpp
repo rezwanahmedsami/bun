@@ -2134,6 +2134,163 @@ JSC_DEFINE_HOST_FUNCTION(functionMemFree, (JSGlobalObject* globalObject, JSC::Ca
     return JSValue::encode(jsUndefined());
 }
 
+// // Function to set trace log callback
+// JSC_DEFINE_HOST_FUNCTION(functionSetTraceLogCallback, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+//     // Get the callback function from the argument and cast it to JSFunction
+//     auto* callback = JSC::jsCast<JSC::JSFunction*>(callFrame->argument(0));
+
+//     // Define a lambda that matches the TraceLogCallback signature
+//     TraceLogCallback traceLogCallback = [](int logType, const char* text, va_list args) {
+//         // Example: Directly print the log message
+//         vprintf(text, args);
+//     };
+
+//     // Set custom trace log using the defined callback
+//     SetTraceLogCallback(traceLogCallback);
+
+//     // Example: Call the JavaScript callback function
+//     if (callback) {
+//         // Create arguments for the callback
+//         JSC::ArgList args;
+//         args.append(globalObject);  // Push globalObject as the 'this' value
+//         args.append(JSC::jsNumber(globalObject, 1));  // Assuming 1 is the log type
+//         args.append(JSC::jsString(globalObject, "Log message from C++"));
+
+//         // Call the callback function with the arguments
+//         JSC::call(globalObject, callback, JSC::jsUndefined(), args);
+//     }
+
+//     return JSC::JSValue::encode(jsUndefined());
+// }
+
+// // Function to set load file data callback
+// JSC_DEFINE_HOST_FUNCTION(functionSetLoadFileDataCallback, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+//     // Get the callback function from the argument
+//     auto callback = callFrame->argument(0);
+
+//     // Set custom file binary data loader
+//     SetLoadFileDataCallback([callback](const char* fileName, int* dataSize) -> unsigned char* {
+//         // Call the JS callback function
+//         auto result = callback.call(globalObject, { JSC::jsString(globalObject->vm(), fileName) });
+
+//         // Check if the result is an ArrayBuffer
+//         if (!result.isObject() || !result.toObject(globalObject)->isTypedArray(globalObject)) {
+//             // Handle error: Invalid return value
+//             return nullptr;
+//         }
+
+//         // Get the ArrayBuffer data and size
+//         auto arrayBuffer = JSC::jsCast<JSC::JSArrayBuffer*>(result);
+//         auto data = arrayBuffer->data();
+//         auto size = arrayBuffer->byteLength();
+
+//         // Allocate memory for the data
+//         unsigned char* dataCopy = static_cast<unsigned char*>(MemAlloc(size));
+//         if (!dataCopy) {
+//             // Handle error: Memory allocation failed
+//             return nullptr;
+//         }
+
+//         // Copy the data to the allocated memory
+//         memcpy(dataCopy, data, size);
+
+//         // Set the data size
+//         *dataSize = size;
+
+//         return dataCopy;
+//     });
+
+//     return JSValue::encode(jsUndefined());
+// }
+
+// // Function to set save file data callback
+// JSC_DEFINE_HOST_FUNCTION(functionSetSaveFileDataCallback, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+//     // Get the callback function from the argument
+//     auto callback = callFrame->argument(0);
+
+//     // Set custom file binary data saver
+//     SetSaveFileDataCallback([callback](const char* fileName, void* data, int dataSize) -> bool {
+//         // Create a JSArrayBuffer to represent the data
+//         JSC::VM& vm = globalObject->vm();
+//         JSC::Structure* structure = JSC::JSArrayBuffer::createStructure(vm, globalObject, globalObject->arrayBufferStructure());
+//         auto arrayBufferData = JSC::ArrayBuffer::tryCreate(static_cast<unsigned char*>(data), dataSize);
+//         if (!arrayBufferData) {
+//             // Handle error: Unable to create ArrayBuffer
+//             return false;
+//         }
+
+//         // Create JSArrayBuffer using the ArrayBuffer
+//         auto arrayBufferJS = JSC::JSArrayBuffer::create(vm, structure, WTFMove(arrayBufferData));
+
+//         // Call the JS callback function
+//         auto result = callback.call(globalObject, { JSC::jsString(globalObject->vm(), fileName), arrayBufferJS });
+
+//         // Check if the result is a boolean
+//         if (!result.isBoolean()) {
+//             // Handle error: Invalid return value
+//             return false;
+//         }
+
+//         return result.toBoolean(globalObject);
+//     });
+
+//     return JSValue::encode(jsUndefined());
+// }
+
+// // Function to set load file text callback
+// JSC_DEFINE_HOST_FUNCTION(functionSetLoadFileTextCallback, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+//     // Get the callback function from the argument
+//     auto callback = callFrame->argument(0);
+
+//     // Set custom file text data loader
+//     SetLoadFileTextCallback([callback](const char* fileName) -> char* {
+//         // Call the JS callback function
+//         auto result = callback.call(globalObject, { JSC::jsString(globalObject->vm(), fileName) });
+
+//         // Check if the result is a string
+//         if (!result.isString()) {
+//             // Handle error: Invalid return value
+//             return nullptr;
+//         }
+
+//         // Copy the string to a new memory location
+//         auto text = result.toWTFString(globalObject).utf8();
+//         auto textCopy = static_cast<char*>(MemAlloc(text.length() + 1));
+//         if (!textCopy) {
+//             // Handle error: Memory allocation failed
+//             return nullptr;
+//         }
+
+//         strcpy(textCopy, text.data());
+
+//         return textCopy;
+//     });
+
+//     return JSValue::encode(jsUndefined());
+// }
+
+// // Function to set save file text callback
+// JSC_DEFINE_HOST_FUNCTION(functionSetSaveFileTextCallback, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+//     // Get the callback function from the argument
+//     auto callback = callFrame->argument(0);
+
+//     // Set custom file text data saver
+//     SetSaveFileTextCallback([callback](const char* fileName, char* text) -> bool {
+//         // Call the JS callback function
+//         auto result = callback.call(globalObject, { JSC::jsString(globalObject->vm(), fileName), JSC::jsString(globalObject->vm(), text) });
+
+//         // Check if the result is a boolean
+//         if (!result.isBoolean()) {
+//             // Handle error: Invalid return value
+//             return false;
+//         }
+
+//         return result.toBoolean(globalObject);
+//     });
+
+//     return JSValue::encode(jsUndefined());
+// }
+
 // Function to load file data
 JSC_DEFINE_HOST_FUNCTION(functionLoadFileData, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
     // Get the file name from the argument
@@ -2171,6 +2328,408 @@ JSC_DEFINE_HOST_FUNCTION(functionLoadFileData, (JSGlobalObject* globalObject, JS
 
     return JSValue::encode(arrayBufferJS);
 }
+
+// Function to unload file data
+JSC_DEFINE_HOST_FUNCTION(functionUnloadFileData, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the data from the argument
+    auto data = callFrame->argument(0);
+
+    // Check if the argument is an ArrayBuffer
+    auto arrayBuffer = JSC::jsDynamicCast<JSC::JSArrayBuffer*>(data);
+    if (!arrayBuffer) {
+        // Handle error: Invalid argument
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Get the underlying ArrayBuffer
+    JSC::ArrayBuffer* buffer = arrayBuffer->impl();
+
+    // Get the ArrayBuffer data
+    auto arrayBufferData = buffer->data();
+
+    // Unload file data allocated by LoadFileData()
+    UnloadFileData(static_cast<unsigned char*>(arrayBufferData));
+
+    // No need to manually free 'arrayBufferData' as it is now managed by JSArrayBuffer
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to save file data
+JSC_DEFINE_HOST_FUNCTION(functionSaveFileData, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file name, data and data size from the arguments
+    auto fileName = callFrame->argument(0).toWTFString(globalObject);
+    auto data = callFrame->argument(1);
+    auto dataSize = callFrame->argument(2).toInt32(globalObject);
+
+    // Check if the data is an ArrayBuffer
+    auto arrayBuffer = JSC::jsDynamicCast<JSC::JSArrayBuffer*>(data);
+    if (!arrayBuffer) {
+        // Handle error: Invalid argument
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Get the underlying ArrayBuffer
+    JSC::ArrayBuffer* buffer = arrayBuffer->impl();
+
+    // Get the ArrayBuffer data
+    auto arrayBufferData = buffer->data();
+
+    // Save data to file from byte array (write), returns true on success
+    auto result = SaveFileData(fileName.utf8().data(), arrayBufferData, dataSize);
+
+    return JSValue::encode(JSC::jsBoolean(result));
+}
+
+// Function to export data as code
+JSC_DEFINE_HOST_FUNCTION(functionExportDataAsCode, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the data, data size and file name from the arguments
+    auto data = callFrame->argument(0);
+    auto dataSize = callFrame->argument(1).toInt32(globalObject);
+    auto fileName = callFrame->argument(2).toWTFString(globalObject);
+
+    // Check if the data is an ArrayBuffer
+    auto arrayBuffer = JSC::jsDynamicCast<JSC::JSArrayBuffer*>(data);
+    if (!arrayBuffer) {
+        // Handle error: Invalid argument
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Get the underlying ArrayBuffer
+    JSC::ArrayBuffer* buffer = arrayBuffer->impl();
+
+    // Get the ArrayBuffer data
+    auto arrayBufferData = buffer->data();
+
+    // Export data to code (.h), returns true on success
+    auto result = ExportDataAsCode(static_cast<const unsigned char*>(arrayBufferData), dataSize, fileName.utf8().data());
+
+    return JSValue::encode(JSC::jsBoolean(result));
+}
+
+// Function to load file text
+JSC_DEFINE_HOST_FUNCTION(functionLoadFileText, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file name from the argument
+    auto fileName = callFrame->argument(0).toWTFString(globalObject);
+
+    // Load text data from file (read), returns a '\0' terminated string
+    auto text = LoadFileText(fileName.utf8().data());
+
+    if (!text) {
+        // Handle error: Unable to load file text
+        // Return undefined or throw an exception
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Create a JSString to represent the text
+    auto textJS = JSC::jsString(globalObject->vm(), makeString(text));
+
+    // Unload the file text (now managed by JSString)
+    // No need to manually free 'text' as it is now managed by JSString
+    // UnloadFileText(text);
+
+    return JSValue::encode(textJS);
+}
+
+// Function to unload file text
+JSC_DEFINE_HOST_FUNCTION(functionUnloadFileText, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the text from the argument
+    auto text = callFrame->argument(0);
+
+    // Check if the argument is a string
+    auto textString = JSC::jsDynamicCast<JSC::JSString*>(text);
+    if (!textString) {
+        // Handle error: Invalid argument
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Get the string data
+    auto textData = textString->value(globalObject);
+
+    // Unload file text data allocated by LoadFileText()
+    UnloadFileText(const_cast<char*>(textData.utf8().data()));
+
+    // No need to manually free 'textData' as it is now managed by JSString
+
+    return JSValue::encode(jsUndefined());
+}
+
+// Function to save file text
+JSC_DEFINE_HOST_FUNCTION(functionSaveFileText, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file name and text from the arguments
+    auto fileName = callFrame->argument(0).toWTFString(globalObject);
+    auto text = callFrame->argument(1).toWTFString(globalObject);
+
+    // Save text data to file (write), string must be '\0' terminated, returns true on success
+    auto result = SaveFileText(fileName.utf8().data(), const_cast<char*>(text.utf8().data()));
+
+    return JSValue::encode(JSC::jsBoolean(result));
+}
+
+/*
+ // File system functions
+    bool FileExists(const char *fileName);                      // Check if file exists
+    bool DirectoryExists(const char *dirPath);                  // Check if a directory path exists
+    bool IsFileExtension(const char *fileName, const char *ext); // Check file extension (including point: .png, .wav)
+    int GetFileLength(const char *fileName);                    // Get file length in bytes (NOTE: GetFileSize() conflicts with windows.h)
+    const char *GetFileExtension(const char *fileName);         // Get pointer to extension for a filename string (includes dot: '.png')
+    const char *GetFileName(const char *filePath);              // Get pointer to filename for a path string
+    const char *GetFileNameWithoutExt(const char *filePath);    // Get filename string without extension (uses static string)
+    const char *GetDirectoryPath(const char *filePath);         // Get full path for a given fileName with path (uses static string)
+    const char *GetPrevDirectoryPath(const char *dirPath);      // Get previous directory path for a given path (uses static string)
+    const char *GetWorkingDirectory(void);                      // Get current working directory (uses static string)
+    const char *GetApplicationDirectory(void);                  // Get the directory of the running application (uses static string)
+    bool ChangeDirectory(const char *dir);                      // Change working directory, return true on success
+    bool IsPathFile(const char *path);                          // Check if a given path is a file or a directory
+    FilePathList LoadDirectoryFiles(const char *dirPath);       // Load directory filepaths
+    FilePathList LoadDirectoryFilesEx(const char *basePath, const char *filter, bool scanSubdirs); // Load directory filepaths with extension filtering and recursive directory scan
+    void UnloadDirectoryFiles(FilePathList files);              // Unload filepaths
+    bool IsFileDropped(void);                                   // Check if a file has been dropped into window
+    FilePathList LoadDroppedFiles(void);                        // Load dropped filepaths
+    void UnloadDroppedFiles(FilePathList files);                // Unload dropped filepaths
+    long GetFileModTime(const char *fileName);                  // Get file modification time (last write time)
+*/
+
+// Function to check if file exists
+JSC_DEFINE_HOST_FUNCTION(functionFileExists, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file name from the argument
+    auto fileName = callFrame->argument(0).toWTFString(globalObject);
+
+    // Check if file exists
+    auto result = FileExists(fileName.utf8().data());
+
+    return JSValue::encode(JSC::jsBoolean(result));
+}
+
+// Function to check if directory exists
+JSC_DEFINE_HOST_FUNCTION(functionDirectoryExists, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the directory path from the argument
+    auto dirPath = callFrame->argument(0).toWTFString(globalObject);
+
+    // Check if a directory path exists
+    auto result = DirectoryExists(dirPath.utf8().data());
+
+    return JSValue::encode(JSC::jsBoolean(result));
+}
+
+// Function to check if file extension
+JSC_DEFINE_HOST_FUNCTION(functionIsFileExtension, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file name and extension from the arguments
+    auto fileName = callFrame->argument(0).toWTFString(globalObject);
+    auto ext = callFrame->argument(1).toWTFString(globalObject);
+
+    // Check file extension (including point: .png, .wav)
+    auto result = IsFileExtension(fileName.utf8().data(), ext.utf8().data());
+
+    return JSValue::encode(JSC::jsBoolean(result));
+}
+
+// Function to get file length
+JSC_DEFINE_HOST_FUNCTION(functionGetFileLength, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file name from the argument
+    auto fileName = callFrame->argument(0).toWTFString(globalObject);
+
+    // Get file length in bytes (NOTE: GetFileSize() conflicts with windows.h)
+    auto result = GetFileLength(fileName.utf8().data());
+
+    return JSValue::encode(JSC::jsNumber(result));
+}
+
+// Function to get file extension
+JSC_DEFINE_HOST_FUNCTION(functionGetFileExtension, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file name from the argument
+    auto fileName = callFrame->argument(0).toWTFString(globalObject);
+
+    // Get pointer to extension for a filename string (includes dot: '.png')
+    auto ext = GetFileExtension(fileName.utf8().data());
+
+    return JSValue::encode(JSC::jsString(globalObject->vm(), makeString(ext)));
+}
+
+// Function to get file name
+JSC_DEFINE_HOST_FUNCTION(functionGetFileName, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file path from the argument
+    auto filePath = callFrame->argument(0).toWTFString(globalObject);
+
+    // Get pointer to filename for a path string
+    auto fileName = GetFileName(filePath.utf8().data());
+
+    return JSValue::encode(JSC::jsString(globalObject->vm(),   makeString(fileName)));
+}
+
+// Function to get file name without extension
+JSC_DEFINE_HOST_FUNCTION(functionGetFileNameWithoutExt, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file path from the argument
+    auto filePath = callFrame->argument(0).toWTFString(globalObject);
+
+    // Get filename string without extension (uses static string)
+    auto fileName = GetFileNameWithoutExt(filePath.utf8().data());
+
+    return JSValue::encode(JSC::jsString(globalObject->vm(), makeString(fileName)));
+}
+
+// Function to get directory path
+JSC_DEFINE_HOST_FUNCTION(functionGetDirectoryPath, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the file path from the argument
+    auto filePath = callFrame->argument(0).toWTFString(globalObject);
+
+    // Get full path for a given fileName with path (uses static string)
+    auto dirPath = GetDirectoryPath(filePath.utf8().data());
+
+    return JSValue::encode(JSC::jsString(globalObject->vm(), makeString(dirPath)));
+}
+
+// Function to get previous directory path
+JSC_DEFINE_HOST_FUNCTION(functionGetPrevDirectoryPath, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the directory path from the argument
+    auto dirPath = callFrame->argument(0).toWTFString(globalObject);
+
+    // Get previous directory path for a given path (uses static string)
+    auto prevDirPath = GetPrevDirectoryPath(dirPath.utf8().data());
+
+    return JSValue::encode(JSC::jsString(globalObject->vm(), makeString(prevDirPath)));
+}
+
+// Function to get working directory
+JSC_DEFINE_HOST_FUNCTION(functionGetWorkingDirectory, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get current working directory (uses static string)
+    auto dirPath = GetWorkingDirectory();
+
+    return JSValue::encode(JSC::jsString(globalObject->vm(), makeString(dirPath)));
+}
+
+// Function to get application directory
+JSC_DEFINE_HOST_FUNCTION(functionGetApplicationDirectory, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the directory of the running application (uses static string)
+    auto dirPath = GetApplicationDirectory();
+
+    return JSValue::encode(JSC::jsString(globalObject->vm(), makeString(dirPath)));
+}
+
+// Function to ChangeDirectory (Set working directory)
+JSC_DEFINE_HOST_FUNCTION(functionChangeDirectory, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the directory path from the argument
+    auto dirPath = callFrame->argument(0).toWTFString(globalObject);
+
+    // Change working directory, return true on success
+    auto result = ChangeDirectory(dirPath.utf8().data());
+
+    return JSValue::encode(JSC::jsBoolean(result));
+}
+
+// Function to check if path is file
+JSC_DEFINE_HOST_FUNCTION(functionIsPathFile, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    // Get the path from the argument
+    auto path = callFrame->argument(0).toWTFString(globalObject);
+
+    // Check if a given path is a file or a directory
+    auto result = IsPathFile(path.utf8().data());
+
+    return JSValue::encode(JSC::jsBoolean(result));
+}
+
+// Function to load directory files
+JSC_DEFINE_HOST_FUNCTION(functionLoadDirectoryFiles, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    // Get the directory path from the argument
+    auto dirPath = callFrame->argument(0).toWTFString(globalObject);
+
+    // Load directory filepaths
+    FilePathList files = LoadDirectoryFiles(dirPath.utf8().data());
+
+    // Create a JS array to hold the file paths
+    auto* resultArray = JSC::constructEmptyArray(globalObject, nullptr, files.count);
+
+    for (unsigned int i = 0; i < files.count; ++i) {
+        auto jsString = JSC::jsString(vm, WTF::String::fromUTF8(files.paths[i]));
+        resultArray->putDirectIndex(globalObject, i, jsString);
+    }
+
+    // Unload the file paths
+    UnloadDirectoryFiles(files);
+
+    return JSValue::encode(resultArray);
+}
+
+// Function to load directory files with extension filtering and recursive directory scan
+JSC_DEFINE_HOST_FUNCTION(functionLoadDirectoryFilesEx, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    // Get the base path, filter, and scan subdirs from the arguments
+    auto basePath = callFrame->argument(0).toWTFString(globalObject);
+    auto filter = callFrame->argument(1).toWTFString(globalObject);
+    auto scanSubdirs = callFrame->argument(2).toBoolean(globalObject);
+
+    // Load directory filepaths with extension filtering and recursive directory scan
+    FilePathList files = LoadDirectoryFilesEx(basePath.utf8().data(), filter.utf8().data(), scanSubdirs);
+
+    // Create a JS array to hold the file paths
+    auto* resultArray = JSC::constructEmptyArray(globalObject, nullptr, files.count);
+
+    for (unsigned int i = 0; i < files.count; ++i) {
+        auto jsString = JSC::jsString(vm, WTF::String::fromUTF8(files.paths[i]));
+        resultArray->putDirectIndex(globalObject, i, jsString);
+    }
+
+    // Unload the file paths
+    UnloadDirectoryFiles(files);
+
+    return JSValue::encode(resultArray);
+}
+
+// Function to unload directory files
+JSC_DEFINE_HOST_FUNCTION(functionUnloadDirectoryFiles, (JSGlobalObject* globalObject, JSC::CallFrame* callFrame)) {
+    JSC::VM& vm = globalObject->vm();
+    // Get the files object from the argument
+    auto filesObject = callFrame->argument(0).toObject(globalObject);
+
+    // Check if the argument is an object
+    if (!filesObject || !filesObject->inherits<JSGlobalObject>()) {
+        // Handle error: Invalid argument
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Get the files pointer from the object
+    auto filesPtrValue = filesObject->get(globalObject, JSC::Identifier::fromString(vm, "filesPtr"_s));
+    if (!filesPtrValue.isCell()) {
+        // Handle error: Invalid argument
+        return JSValue::encode(jsUndefined());
+    }
+
+    auto* filesPtrCell = filesPtrValue.asCell();
+    if (!filesPtrCell->inherits<JSObject>()) {
+        // Handle error: Invalid pointer type
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Ensure filesPtrObject is a JSC::JSObject
+    auto filesPtrObject = jsCast<JSC::JSObject*>(filesPtrCell);
+
+    // Access internal field using structure
+    FilePathList* internalPtr = nullptr;
+
+    if (filesPtrObject->structure()->outOfLineCapacity() > 0) {
+        internalPtr = reinterpret_cast<FilePathList*>(filesPtrObject->getIndex(globalObject, 0).asCell());
+    }
+
+    if (!internalPtr) {
+        // Handle error: Invalid internal pointer
+        return JSValue::encode(jsUndefined());
+    }
+
+    // Unload filepaths
+    UnloadDirectoryFiles(*internalPtr);
+
+    // Clear the pointer in the JavaScript object
+    filesObject->putDirect(vm, JSC::Identifier::fromString(vm, "filesPtr"_s), jsUndefined());
+
+    return JSValue::encode(jsUndefined());
+}
+
+
 
 
 /* Custom frame control functions */
@@ -2384,9 +2943,24 @@ JSC_DEFINE_HOST_FUNCTION(functionFileURLToPath, (JSC::JSGlobalObject * globalObj
     getFrameTime                                   functionGetFrameTime                                                DontDelete|Function 0
     getTime                                        functionGetTime                                                     DontDelete|Function 0
     getFPS                                         functionGetFPS                                                      DontDelete|Function 0
-
-
     
+    swapScreenBuffer                               functionSwapScreenBuffer                                            DontDelete|Function 0
+    pollInputEvents                                functionPollInputEvents                                             DontDelete|Function 0
+    waitTime                                       functionWaitTime                                                    DontDelete|Function 1
+    setRandomSeed                                  functionSetRandomSeed                                               DontDelete|Function 1
+    getRandomValue                                 functionGetRandomValue                                              DontDelete|Function 2
+    loadRandomSequence                             functionLoadRandomSequence                                          DontDelete|Function 3
+    unloadRandomSequence                           functionUnloadRandomSequence                                        DontDelete|Function 1
+    takeScreenshot                                 functionTakeScreenshot                                              DontDelete|Function 1
+    setConfigFlags                                 functionSetConfigFlags                                              DontDelete|Function 1
+    openURL                                        functionOpenURL                                                     DontDelete|Function 1
+    traceLog                                       functionTraceLog                                                    DontDelete|Function 2
+    setTraceLogLevel                               functionSetTraceLogLevel                                            DontDelete|Function 1
+    memAlloc                                      functionMemAlloc                                                    DontDelete|Function 1
+    memRealloc                                    functionMemRealloc                                                  DontDelete|Function 2
+    memFree                                       functionMemFree                                                     DontDelete|Function 1
+    loadFileData                                  functionLoadFileData                                                DontDelete|Function 1
+
     openInEditor                                   BunObject_callback_openInEditor                                     DontDelete|Function 1
     origin                                         BunObject_getter_wrap_origin                                        DontDelete|PropertyCallback
     password                                       constructPasswordObject                                             DontDelete|PropertyCallback
